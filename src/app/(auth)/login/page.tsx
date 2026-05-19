@@ -102,9 +102,15 @@ export default function LoginForm() {
                 <div className="space-y-1">
                     <div className="flex justify-between items-center">
                         <label className="text-sm font-medium">{"Mật khẩu"}</label>
-                        <button type="button" className="cursor-pointer text-xs hover:underline">
-                            {"Quên mật khẩu?"}
-                        </button>
+                        <a href="/forgot-password">
+                            <button
+                                type="button"
+                                className="cursor-pointer text-xs hover:underline"
+                                onClick={() => router.push("/forgot-password")}
+                            >
+                                {"Quên mật khẩu?"}
+                            </button>
+                        </a>
                     </div>
                     <Input
                         type="password"
@@ -123,7 +129,7 @@ export default function LoginForm() {
                     className="w-full mt-4 cursor-pointer"
                     disabled={isLoading}
                     //FIXME: But color pallete into globals.css
-                    style={{backgroundColor: "#E4187D"}}
+                    style={{ backgroundColor: "#E4187D" }}
                 >
                     {isLoading ? (
                         <>
