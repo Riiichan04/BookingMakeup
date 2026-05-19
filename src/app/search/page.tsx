@@ -43,15 +43,7 @@ function ServiceCard({ service }: { service: MakeupService }) {
           alt={service.title}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
-        {/* Badge */}
-        <span style={{
-          position: "absolute", top: 10, left: 10,
-          background: tagColor, color: "#fff",
-          fontSize: 11, fontWeight: 700,
-          padding: "3px 10px", borderRadius: 20,
-        }}>
-          {service.categoryTag}
-        </span>
+
         {/* Heart */}
         <button
           onClick={() => setLiked(!liked)}
