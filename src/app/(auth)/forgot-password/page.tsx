@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SendVerifySchema, VerifySchema } from "@/schemas/verify-schema";
+import { SendVerifySchema, VerifySchema, VerifyValues } from "@/schemas/verify-schema";
 import { toast } from "sonner";
 import { useState } from "react";
 import axios from "axios";
@@ -12,59 +12,39 @@ import Link from "next/link";
 
 import { VerificationType } from "@/types/verify";
 import { requestVerify, resetPassword } from "@/services/verify-service";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 export default function ForgotPasswordForm() {
-    const sendVerifySchema = SendVerifySchema();
-    const verifySchema = VerifySchema();
-
     const [step, setStep] = useState<1 | 2>(1);
     const [isLoading, setIsLoading] = useState(false);
+    const [savedEmail, setSavedEmail] = useState(""); 
     const router = useRouter();
 
-    const [formData, setFormData] = useState({
-        email: "",
-        code: "",
-        password: "",
-        confirmPassword: "",
+    const step1Form = useForm<{ email: string }>({
+        resolver: zodResolver(SendVerifySchema()),
+        defaultValues: { email: "" }
     });
 
-    const [errors, setErrors] = useState<{
-        email?: string;
-        code?: string;
-        password?: string;
-        confirmPassword?: string;
-    }>({});
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-
-        if (errors[name as keyof typeof errors]) {
-            setErrors((prev) => ({ ...prev, [name]: undefined }));
+    const step2Form = useForm<VerifyValues>({
+        resolver: zodResolver(VerifySchema()),
+        defaultValues: {
+            code: "",
+            password: "",
+            confirmPassword: ""
         }
-    };
+    });
 
-    const onStep1Submit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setErrors({});
-
-        const validation = sendVerifySchema.safeParse({ email: formData.email });
-
-        if (!validation.success) {
-            setErrors({
-                email: validation.error.format().email?._errors[0],
-            });
-            return;
-        }
-
+    const onStep1Submit = async (data: { email: string }) => {
         setIsLoading(true);
         try {
-            const response = await requestVerify(formData.email, VerificationType.RESET_PASSWORD);
+            const response = await requestVerify(data.email, VerificationType.RESET_PASSWORD);
 
             if (response.result === true) {
                 toast.success("Đã gửi mã xác thực", {
                     description: "Vui lòng kiểm tra hộp thư email của bạn.",
                 });
+                setSavedEmail(data.email);
                 setStep(2);
             } else {
                 toast.error("Không thể gửi mã xác thực", {
@@ -84,29 +64,10 @@ export default function ForgotPasswordForm() {
         }
     };
 
-    const onStep2Submit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setErrors({});
-
-        const validation = verifySchema.safeParse({
-            code: formData.code,
-            password: formData.password,
-            confirmPassword: formData.confirmPassword,
-        });
-
-        if (!validation.success) {
-            const formattedErrors = validation.error.format();
-            setErrors({
-                code: formattedErrors.code?._errors[0],
-                password: formattedErrors.password?._errors[0],
-                confirmPassword: formattedErrors.confirmPassword?._errors[0],
-            });
-            return;
-        }
-
+    const onStep2Submit = async (data: VerifyValues) => {
         setIsLoading(true);
         try {
-            const response = await resetPassword(formData.email, formData.code, formData.password);
+            const response = await resetPassword(savedEmail, data.code, data.password);
 
             if (response.result === true) {
                 toast.success("Đổi mật khẩu thành công", {
@@ -147,19 +108,17 @@ export default function ForgotPasswordForm() {
             </div>
 
             {step === 1 && (
-                <form onSubmit={onStep1Submit} className="space-y-6">
+                <form onSubmit={step1Form.handleSubmit(onStep1Submit)} className="space-y-6">
                     <div className="space-y-1">
                         <label className="text-sm font-medium">Email</label>
                         <Input
                             type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
                             placeholder="name@example.com"
-                            className={errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
+                            {...step1Form.register("email")}
+                            className={step1Form.formState.errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
                         />
-                        {errors.email && (
-                            <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+                        {step1Form.formState.errors.email && (
+                            <p className="text-xs text-red-500 mt-1">{step1Form.formState.errors.email.message}</p>
                         )}
                     </div>
 
@@ -189,23 +148,21 @@ export default function ForgotPasswordForm() {
             )}
 
             {step === 2 && (
-                <form onSubmit={onStep2Submit} className="space-y-6">
+                <form onSubmit={step2Form.handleSubmit(onStep2Submit)} className="space-y-6">
                     <div className="space-y-1">
                         <div className="flex justify-between items-center">
                             <label className="text-sm font-medium">Mã xác thực (OTP)</label>
-                            <span className="text-xs text-gray-500">Đã gửi tới {formData.email}</span>
+                            <span className="text-xs text-gray-500">Đã gửi tới {savedEmail}</span>
                         </div>
                         <Input
                             type="text"
-                            name="code"
                             maxLength={6}
-                            value={formData.code}
-                            onChange={handleChange}
                             placeholder="Nhập 6 số..."
-                            className={errors.code ? "border-destructive focus-visible:ring-destructive" : ""}
+                            {...step2Form.register("code")}
+                            className={step2Form.formState.errors.code ? "border-destructive focus-visible:ring-destructive" : ""}
                         />
-                        {errors.code && (
-                            <p className="text-xs text-destructive mt-1">{errors.code}</p>
+                        {step2Form.formState.errors.code && (
+                            <p className="text-xs text-destructive mt-1">{step2Form.formState.errors.code.message}</p>
                         )}
                     </div>
 
@@ -213,13 +170,11 @@ export default function ForgotPasswordForm() {
                         <label className="text-sm font-medium">Mật khẩu mới</label>
                         <Input
                             type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            className={errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
+                            {...step2Form.register("password")}
+                            className={step2Form.formState.errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
                         />
-                        {errors.password && (
-                            <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+                        {step2Form.formState.errors.password && (
+                            <p className="text-xs text-red-500 mt-1">{step2Form.formState.errors.password.message}</p>
                         )}
                     </div>
 
@@ -227,13 +182,11 @@ export default function ForgotPasswordForm() {
                         <label className="text-sm font-medium">Xác nhận mật khẩu mới</label>
                         <Input
                             type="password"
-                            name="confirmPassword"
-                            value={formData.confirmPassword}
-                            onChange={handleChange}
-                            className={errors.confirmPassword ? "border-destructive focus-visible:ring-destructive" : ""}
+                            {...step2Form.register("confirmPassword")}
+                            className={step2Form.formState.errors.confirmPassword ? "border-destructive focus-visible:ring-destructive" : ""}
                         />
-                        {errors.confirmPassword && (
-                            <p className="text-xs text-destructive mt-1">{errors.confirmPassword}</p>
+                        {step2Form.formState.errors.confirmPassword && (
+                            <p className="text-xs text-destructive mt-1">{step2Form.formState.errors.confirmPassword.message}</p>
                         )}
                     </div>
 
@@ -256,7 +209,10 @@ export default function ForgotPasswordForm() {
                     <div className="text-center mt-4">
                         <button
                             type="button"
-                            onClick={() => setStep(1)}
+                            onClick={() => {
+                                setStep(1);
+                                step2Form.reset();
+                            }}
                             className="text-sm text-gray-600 hover:text-gray-800 underline"
                         >
                             Đổi email khác

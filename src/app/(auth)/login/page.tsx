@@ -1,7 +1,6 @@
 "use client";
 
 import { loginSchema, LoginValues } from "@/schemas/login-schema";
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldSeparator } from "@/components/ui/field";
@@ -15,42 +14,31 @@ import { useAuth } from "@/contexts/auth-context";
 import { AuthResponse } from "@/types/auth";
 import { handleLogin } from "@/services/auth-service";
 
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 export default function LoginForm() {
     const formSchema = loginSchema();
-    const [isLoading, setIsLoading] = useState(false)
-    const router = useRouter()
-    const { login } = useAuth()
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+    const { login } = useAuth();
 
-    const [formData, setFormData] = useState<LoginValues>({ email: "", password: "" });
-    const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<LoginValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+        },
+    });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-
-        if (errors[name as keyof typeof errors]) {
-            setErrors((prev) => ({ ...prev, [name]: undefined }));
-        }
-    };
-
-    const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setErrors({});
-
-        const validation = formSchema.safeParse(formData);
-
-        if (!validation.success) {
-            const formattedErrors = validation.error.format();
-            setErrors({
-                email: formattedErrors.email?._errors[0],
-                password: formattedErrors.password?._errors[0],
-            });
-            return;
-        }
-
+    const onSubmit = async (data: LoginValues) => {
         setIsLoading(true);
         try {
-            const response: AuthResponse = await handleLogin(formData);
+            const response: AuthResponse = await handleLogin(data);
             if (response.result === true && response.authDto) {
                 login(response.authDto);
 
@@ -82,45 +70,34 @@ export default function LoginForm() {
                 <p className="text-gray-500 text-sm">{"Đăng nhập để tiếp tục cùng chúng tôi"}</p>
             </div>
 
-            <form onSubmit={onSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="space-y-1">
                     <label className="text-sm font-medium">{"Email"}</label>
                     <Input
                         type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
                         placeholder="name@example.com"
+                        {...register("email")}
                         className={errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                     {errors.email && (
-                        <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+                        <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
                     )}
                 </div>
 
-                {/* Password Field */}
                 <div className="space-y-1">
                     <div className="flex justify-between items-center">
                         <label className="text-sm font-medium">{"Mật khẩu"}</label>
-                        <a href="/forgot-password">
-                            <button
-                                type="button"
-                                className="cursor-pointer text-xs hover:underline"
-                                onClick={() => router.push("/forgot-password")}
-                            >
-                                {"Quên mật khẩu?"}
-                            </button>
-                        </a>
+                        <Link href="/forgot-password" className="cursor-pointer text-xs hover:underline">
+                            {"Quên mật khẩu?"}
+                        </Link>
                     </div>
                     <Input
                         type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
+                        {...register("password")}
                         className={errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                     {errors.password && (
-                        <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+                        <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
                     )}
                 </div>
 
@@ -128,7 +105,7 @@ export default function LoginForm() {
                     type="submit"
                     className="w-full mt-4 cursor-pointer"
                     disabled={isLoading}
-                    //FIXME: But color pallete into globals.css
+                    //FIXME: Put color pallete into globals.css
                     style={{ backgroundColor: "#E4187D" }}
                 >
                     {isLoading ? (
