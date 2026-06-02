@@ -2,6 +2,7 @@
 
 import { apiUrl } from "@/common/constant/api-url";
 import ChatDashboard from "@/components/chat/chat-dashboard";
+import Header from "@/components/header";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function ChatPage() {
@@ -18,9 +19,12 @@ export default function ChatPage() {
     }
 
     return (
-        <ChatDashboard
-            currentUserId={user.id}
-            apiUrl={apiUrl}
-        />
+        <div>
+            <Header />
+            <ChatDashboard
+                currentUserId={user.id}
+                apiUrl={apiUrl}
+            />
+        </div>
     );
 }

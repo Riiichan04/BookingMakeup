@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Bell, User as UserIcon, MessageCircleMore } from "lucide-react";
+import { Search, MessageCircleMore } from "lucide-react";
 import ChatBox from "./chat-box";
 import { ChatRoom } from "@/types/chat";
 import { chatService } from "@/services/chat-service";
@@ -43,18 +43,6 @@ export default function ChatDashboard({ currentUserId, apiUrl }: ChatDashboardPr
 
     return (
         <div className="flex flex-col h-screen bg-[#F9FAFB]">
-            <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
-                <span className="text-xl font-bold text-[#E4187D]">Chat SP</span>
-                <div className="flex items-center gap-4 text-gray-500">
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                        <Bell className="w-5 h-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                        <UserIcon className="w-5 h-5" />
-                    </Button>
-                </div>
-            </header>
-
             <div className="flex flex-1 overflow-hidden">
                 <aside className="w-80 bg-white border-r border-gray-100 flex flex-col">
                     <div className="p-4 relative">
