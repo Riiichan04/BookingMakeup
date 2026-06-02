@@ -12,57 +12,34 @@ import { useRouter } from "next/navigation";
 import { AuthResponse } from "@/types/auth";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 export default function RegisterForm() {
     const registerSchema = useRegisterSchema();
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
 
-    const [formData, setFormData] = useState<RegisterValues>({
-        email: "",
-        username: "",
-        password: "",
-        confirmPassword: "",
-        acceptTerms: false
+    const {
+        register,
+        handleSubmit,
+        setValue,
+        formState: { errors },
+    } = useForm<RegisterValues>({
+        resolver: zodResolver(registerSchema),
+        defaultValues: {
+            email: "",
+            username: "",
+            password: "",
+            confirmPassword: "",
+            acceptTerms: false,
+        },
     });
-    const [errors, setErrors] = useState<{
-        email?: string;
-        username?: string;
-        password?: string;
-        confirmPassword?: string;
-        acceptTerms?: string;
-    }>({});
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-
-        if (errors[name as keyof typeof errors]) {
-            setErrors((prev) => ({ ...prev, [name]: undefined }));
-        }
-    };
-
-    const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setErrors({});
-
-        const validation = registerSchema.safeParse(formData);
-
-        if (!validation.success) {
-            const formattedErrors = validation.error.format();
-            setErrors({
-                email: formattedErrors.email?._errors[0],
-                username: formattedErrors.username?._errors[0],
-                password: formattedErrors.password?._errors[0],
-                confirmPassword: formattedErrors.confirmPassword?._errors[0],
-                acceptTerms: formattedErrors.acceptTerms?._errors[0],
-            });
-            return;
-        }
-
+    const onSubmit = async (data: RegisterValues) => {
         setIsLoading(true);
         try {
-            const response: AuthResponse = await handleRegister(formData);
+            const response: AuthResponse = await handleRegister(data);
             if (response.result === true) {
                 toast.success("Đăng ký thành công", {
                     description: "Hệ thống sẽ chuyển hướng sang trang đăng nhập.",
@@ -97,19 +74,17 @@ export default function RegisterForm() {
                 <p className="text-gray-500 text-sm">Tạo tài khoản mới để tham gia cùng chúng tôi</p>
             </div>
 
-            <form onSubmit={onSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="space-y-1">
                     <label className="text-sm font-medium">Email</label>
                     <Input
                         type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
                         placeholder="name@example.com"
+                        {...register("email")}
                         className={errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                     {errors.email && (
-                        <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+                        <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
                     )}
                 </div>
 
@@ -117,14 +92,12 @@ export default function RegisterForm() {
                     <label className="text-sm font-medium">Tên người dùng</label>
                     <Input
                         type="text"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleChange}
                         placeholder="john_doe"
+                        {...register("username")}
                         className={errors.username ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
                     {errors.username && (
-                        <p className="text-xs text-destructive mt-1">{errors.username}</p>
+                        <p className="text-xs text-destructive mt-1">{errors.username.message}</p>
                     )}
                 </div>
 
@@ -134,13 +107,11 @@ export default function RegisterForm() {
                     </div>
                     <Input
                         type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
+                        {...register("password")}
                         className={errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                     {errors.password && (
-                        <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+                        <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
                     )}
                 </div>
 
@@ -148,13 +119,11 @@ export default function RegisterForm() {
                     <label className="text-sm font-medium">Xác nhận mật khẩu</label>
                     <Input
                         type="password"
-                        name="confirmPassword"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
+                        {...register("confirmPassword")}
                         className={errors.confirmPassword ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
                     {errors.confirmPassword && (
-                        <p className="text-xs text-destructive mt-1">{errors.confirmPassword}</p>
+                        <p className="text-xs text-destructive mt-1">{errors.confirmPassword.message}</p>
                     )}
                 </div>
 
@@ -162,12 +131,8 @@ export default function RegisterForm() {
                     <div className="flex items-start space-x-2">
                         <Checkbox
                             id="terms"
-                            checked={formData.acceptTerms}
                             onCheckedChange={(checked) => {
-                                setFormData((prev) => ({ ...prev, acceptTerms: checked === true }));
-                                if (errors.acceptTerms) {
-                                    setErrors((prev) => ({ ...prev, acceptTerms: undefined }));
-                                }
+                                setValue("acceptTerms", checked === true, { shouldValidate: true });
                             }}
                         />
                         <label
@@ -186,7 +151,7 @@ export default function RegisterForm() {
                     </div>
 
                     {errors.acceptTerms && (
-                        <p className="text-xs text-destructive">{errors.acceptTerms}</p>
+                        <p className="text-xs text-destructive">{errors.acceptTerms.message}</p>
                     )}
                 </div>
 
@@ -194,12 +159,12 @@ export default function RegisterForm() {
                     type="submit"
                     className="w-full mt-4 cursor-pointer"
                     disabled={isLoading}
-                    style={{backgroundColor: "#E4187D"}}
+                    style={{ backgroundColor: "#E4187D" }}
                 >
                     {isLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Đang xử lý...
+                            Đang đăng ký...
                         </>
                     ) : (
                         "Đăng ký"
