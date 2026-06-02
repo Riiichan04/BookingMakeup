@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, Palette } from "lucide-react";
+
+import { Playwrite_US_Trad } from "next/font/google";
+const logoFont = Playwrite_US_Trad({
+    weight: ["400"],
+});
 
 export default function Footer() {
     const currentYear = new Date().getFullYear();
@@ -11,9 +16,14 @@ export default function Footer() {
             <div className="mx-auto px-12 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
 
                 <div className="space-y-4">
-                    <span className="text-xl font-bold text-[#E4187D] tracking-wide">
-                        Booking Makeup
-                    </span>
+                    <div className="flex gap-2">
+                        <div className="bg-[#E4187D] rounded-full p-1.5 flex items-center justify-center transition-colors group-hover:bg-[#c9126b] shadow-sm">
+                            <Palette className="w-5 h-5 text-white" strokeWidth={2.5} />
+                        </div>
+                        <span className={`text-2xl text-[#E4187D] tracking-tight ${logoFont.className}`}>
+                            BookingMakeup
+                        </span>
+                    </div>
                     <p className="text-xs text-gray-500 leading-relaxed">
                         Nền tảng kết nối khách hàng và các Chuyên viên trang điểm (Artist) chuyên nghiệp hàng đầu. Đặt lịch nhanh chóng, trải nghiệm tuyệt vời.
                     </p>
