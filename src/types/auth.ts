@@ -1,5 +1,5 @@
 export interface AuthDto {
-    id: number;
+    id: string;
     email: string;
     username: string;
     displayName: string | null;

@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { Search, Sparkles } from "lucide-react";
+import Footer from "@/components/footer";
+import Header from "@/components/header";
 
 export default function Home() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-pink-50 to-white">
+      <Header />
       <main className="flex flex-col items-center gap-8 text-center px-6">
         <div className="flex items-center gap-2 text-pink-500">
           <Sparkles size={32} />
@@ -20,6 +23,7 @@ export default function Home() {
           Tìm kiếm dịch vụ
         </Link>
       </main>
+      <Footer />
     </div>
   );
 }
