@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { cookies } from "next/headers";
 import ClientLayoutWrapper from "@/components/providers/client-layout-wrapper";
 import { AuthDto } from "@/types/auth";
+import Header from "@/components/header";
+import Footer from "@/components/footer";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
