@@ -216,8 +216,8 @@ export default function BookingPage() {
 
   // Tính giá
   const basePrice = service?.priceFrom ?? 0;
-  const depositAmount = Math.round(basePrice * 0.2);
-  const platformFee = Math.round(basePrice * 0.05);
+  const depositAmount = Math.round(basePrice * 0.55);
+  const platformFee = Math.round(depositAmount * 0.15);  // 15% của tiền cọc
   const totalAmount = basePrice;
 
   // Submit booking
@@ -283,7 +283,7 @@ export default function BookingPage() {
             <InfoRow label="Giờ bắt đầu" value={result.startTime?.slice(0, 5)} />
             <InfoRow label="Giờ kết thúc" value={result.endTime?.slice(0, 5)} />
             <InfoRow label="Tổng tiền" value={formatVND(result.totalAmount)} highlight />
-            <InfoRow label="Đặt cọc (20%)" value={formatVND(result.depositAmount)} />
+            <InfoRow label="Đặt cọc (55%)" value={formatVND(result.depositAmount)} />
             <InfoRow label="Trạng thái" value="Chờ xác nhận" badge />
           </div>
 
@@ -524,21 +524,23 @@ export default function BookingPage() {
                   <span style={{ fontSize: 13, color: "#6b7280" }}>Giá dịch vụ</span>
                   <span style={{ fontSize: 13, color: "#111827", fontWeight: 500 }}>{formatVND(basePrice)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, color: "#6b7280" }}>Phí nền tảng (5%)</span>
-                  <span style={{ fontSize: 13, color: "#111827" }}>{formatVND(platformFee)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, color: "#6b7280" }}>Tổng</span>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>{formatVND(totalAmount)}</span>
+                <div style={{
+                  display: "flex", justifyContent: "space-between", marginBottom: 12,
+                  paddingTop: 12, borderTop: "1px dashed #f0f0f0",
+                }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Tổng thanh toán</span>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: "#111827" }}>{formatVND(basePrice)}</span>
                 </div>
                 <div style={{
                   background: "#fdf2f8", borderRadius: 10, padding: "10px 14px",
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                 }}>
-                  <span style={{ fontSize: 13, color: "#be185d", fontWeight: 600 }}>Đặt cọc ngay (20%)</span>
+                  <span style={{ fontSize: 13, color: "#be185d", fontWeight: 600 }}>Đặt cọc ngay (55%)</span>
                   <span style={{ fontSize: 15, fontWeight: 800, color: "#ec4899" }}>{formatVND(depositAmount)}</span>
                 </div>
+                <p style={{ fontSize: 11, color: "#9ca3af", margin: "8px 0 0" }}>
+                  Số còn lại ({formatVND(basePrice - depositAmount)}) thanh toán sau khi hoàn thành dịch vụ
+                </p>
               </div>
 
               {/* Error */}
