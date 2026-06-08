@@ -227,8 +227,8 @@ export default function BookingPage() {
       return;
     }
 
-    // Kiểm tra đăng nhập
-    const raw = typeof window !== "undefined" ? localStorage.getItem("authDto") : null;
+    // Kiểm tra đăng nhập — auth lưu ở localStorage "user_data"
+    const raw = typeof window !== "undefined" ? localStorage.getItem("user_data") : null;
     if (!raw) {
       router.push("/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search));
       return;
@@ -273,12 +273,12 @@ export default function BookingPage() {
             Đặt lịch thành công!
           </h2>
           <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 28 }}>
-            Yêu cầu của bạn đã được gửi. Nghệ sĩ sẽ xác nhận trong thời gian sớm nhất.
+            Yêu cầu của bạn đã được gửi. Thợ trang điểm sẽ xác nhận trong thời gian sớm nhất.
           </p>
 
           <div style={{ background: "#f9fafb", borderRadius: 16, padding: 20, textAlign: "left", marginBottom: 28 }}>
             <InfoRow label="Dịch vụ" value={result.serviceName} />
-            <InfoRow label="Nghệ sĩ" value={result.artistName} />
+            <InfoRow label="Thợ trang điểm" value={result.artistName} />
             <InfoRow label="Ngày" value={result.bookingDate?.split("-").reverse().join("-")} />
             <InfoRow label="Giờ bắt đầu" value={result.startTime?.slice(0, 5)} />
             <InfoRow label="Giờ kết thúc" value={result.endTime?.slice(0, 5)} />
@@ -402,7 +402,7 @@ export default function BookingPage() {
               {loadingSchedule ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#9ca3af", fontSize: 13 }}>
                   <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
-                  Đang tải lịch nghệ sĩ...
+                  Đang tải lịch thợ trang điểm...
                   <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
                 </div>
               ) : (
@@ -581,7 +581,7 @@ export default function BookingPage() {
               </button>
 
               <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 12, marginBottom: 0 }}>
-                Bạn sẽ thanh toán đặt cọc sau khi nghệ sĩ xác nhận
+                Bạn sẽ thanh toán đặt cọc sau khi thợ trang điểm xác nhận
               </p>
             </div>
           </div>
