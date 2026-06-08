@@ -1,5 +1,7 @@
 export interface MakeupService {
   id: number;
+  serviceUuid: string;   // UUID thực dùng khi tạo booking
+  artistUuid: string;    // UUID artist thực dùng khi tạo booking
   title: string;
   category: string;
   categoryTag: string;
@@ -10,6 +12,7 @@ export interface MakeupService {
   rating: number;
   reviewCount: number;
   priceFrom: number;
+  duration: number | null;  // thời lượng dịch vụ (phút)
   imageUrl: string;
   location: string;
   description: string;

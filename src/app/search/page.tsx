@@ -102,14 +102,18 @@ function ServiceCard({ service }: { service: MakeupService }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
           <div>
             <div style={{ fontSize: 11, color: "#9ca3af" }}>Giá từ</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: "#ec4899" }}>${service.priceFrom}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#ec4899" }}>
+              {new Intl.NumberFormat("vi-VN").format(service.priceFrom)} VND
+            </div>
           </div>
           <button style={{
             background: "#111827", color: "#fff",
             border: "none", borderRadius: 12,
             padding: "8px 16px", fontSize: 13, fontWeight: 600,
             cursor: "pointer",
-          }}>
+          }}
+          onClick={() => window.location.href = `/booking/${service.serviceUuid}?artistId=${service.artistUuid}&serviceData=${encodeURIComponent(JSON.stringify(service))}`}
+          >
             Xem chi tiết
           </button>
         </div>
@@ -118,7 +122,7 @@ function ServiceCard({ service }: { service: MakeupService }) {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// Main Page
 interface FilterState {
   categories: string[];
   maxPrice: number;
