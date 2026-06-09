@@ -1,0 +1,1 @@
+export const defaultAvatar = "https://images.unsplash.com/vector-1776244476031-db2aa624a2a0?q=80&w=880&auto=format&fit=crop"
