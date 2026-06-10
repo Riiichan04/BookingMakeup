@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import Image from "next/image";
-import { Clock, CheckCircle2 } from "lucide-react";
+import { Clock, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -13,15 +13,60 @@ import { SERVICE_DEPOSITE_AMOUNT } from "@/common/constant/service-deposite";
 
 export default function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
+    const router = useRouter();
+    
     const [svc, setSvc] = useState<ServiceDetailResponse | null>(null);
-    const router = useRouter()
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        getServiceDetail(resolvedParams.id).then(setSvc);
+        getServiceDetail(resolvedParams.id)
+            .then((data) => {
+                setSvc(data);
+            })
+            .catch(() => {
+                setSvc(null);
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     }, [resolvedParams.id]);
+    if (isLoading) {
+        return (
+            <div className="bg-[#FFF5F8] min-h-screen flex flex-col font-sans pb-20">
+                <Header />
+                <main className="flex-1 flex flex-col items-center justify-center min-h-[50vh]">
+                    <Loader2 className="w-10 h-10 animate-spin text-[#E4187D] mb-4" />
+                    <p className="text-gray-500 font-medium">Đang tải thông tin dịch vụ...</p>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
 
-    if (!svc) return <div className="min-h-screen flex items-center justify-center">Đang tải...</div>;
+    // 2. TRẠNG THÁI: LỖI HOẶC KHÔNG TÌM THẤY DỊCH VỤ (Có Header & Footer + Nút Back)
+    if (!svc) {
+        return (
+            <div className="bg-[#FFF5F8] min-h-screen flex flex-col font-sans pb-20">
+                <Header />
+                <main className="flex-1 flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 max-w-md w-full">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy dịch vụ</h2>
+                        <p className="text-gray-500 mb-8">Dịch vụ này có thể không tồn tại, đã bị xóa, hoặc đã xảy ra lỗi kết nối.</p>
+                        <Button 
+                            onClick={() => router.back()} 
+                            className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 py-6 font-bold w-full"
+                        >
+                            <ArrowLeft className="w-5 h-5 mr-2" />
+                            Quay lại trang trước
+                        </Button>
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
 
+    // 3. TRẠNG THÁI: THÀNH CÔNG (Render UI như cũ)
     const mainImage = svc.mainThumbnailUrl || "https://images.unsplash.com/photo-1595051665600-afd01ea7c446?w=800&q=80";
 
     return (
@@ -62,6 +107,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                         </div>
                     </div>
 
+                    {/* CỘT PHẢI */}
                     <div className="lg:col-span-4 space-y-6">
                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-pink-50">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Giá dịch vụ</p>
@@ -81,7 +127,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                             <p className="text-xs font-bold text-pink-200 uppercase tracking-wider mb-1">Được cung cấp bởi</p>
                             <h3 className="text-2xl font-bold mb-6">{svc.ownerName}</h3>
                             <Button
-                                className="w-full bg-white text-[#E4187D] hover:bg-gray-50 rounded-full font-bold py-6 text-base"
+                                className="w-full bg-white text-[#E4187D] hover:bg-gray-50 hover:text-[#E4187D] rounded-full font-bold py-6 text-base transition-colors"
                                 onClick={() => router.push(`/booking/${svc.serviceId}`)}
                             >
                                 ĐẶT LỊCH NGAY
@@ -110,6 +156,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                 </div>
 
+                {/* DỊCH VỤ LIÊN QUAN */}
                 {svc.relatedServices?.length > 0 && (
                     <div className="mt-16">
                         <h2 className="text-2xl font-bold text-gray-900 mb-6">Các dịch vụ khác của {svc.ownerName}</h2>
@@ -119,10 +166,16 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                                     <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4">
                                         <Image src={rel.imageUrl} alt={rel.name} fill unoptimized className="object-cover" />
                                     </div>
-                                    <h3 className="font-bold text-gray-900 text-sm mb-2">{rel.name}</h3>
+                                    <h3 className="font-bold text-gray-900 text-sm mb-2 line-clamp-2">{rel.name}</h3>
                                     <div className="flex items-center justify-between mt-auto">
                                         <p className="font-bold text-[#E4187D] text-sm">{rel.price.toLocaleString('vi-VN')}đ</p>
-                                        <Button size="sm" className="bg-[#E4187D] text-white rounded-full text-xs h-7">Xem</Button>
+                                        <Button 
+                                            size="sm" 
+                                            className="bg-[#E4187D] text-white rounded-full text-xs h-7 hover:bg-[#c9126b]"
+                                            onClick={() => router.push(`/services/${rel.id}`)}
+                                        >
+                                            Xem
+                                        </Button>
                                     </div>
                                 </div>
                             ))}

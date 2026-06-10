@@ -3,31 +3,76 @@
 import { useEffect, useState, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Star, MapPin, CheckCircle2, Heart } from "lucide-react";
+import { Star, MapPin, CheckCircle2, Heart, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { getProviderProfile } from "@/services/artist-service";
 import { defaultAvatar } from "@/common/constant/default-avatar";
 import { ProviderProfileResponse } from "@/types/artist";
+import { useRouter } from "next/navigation";
+import { SERVICE_DEPOSITE_AMOUNT } from "@/common/constant/service-deposite";
 
 export default function ProviderProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
+    const router = useRouter();
+
     const [data, setData] = useState<ProviderProfileResponse | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        getProviderProfile(resolvedParams.id).then(setData);
+        getProviderProfile(resolvedParams.id)
+            .then((res) => {
+                setData(res);
+            })
+            .catch(() => {
+                setData(null);
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     }, [resolvedParams.id]);
 
-    if (!data) return <div className="min-h-screen flex items-center justify-center">Đang tải...</div>;
+    if (isLoading) {
+        return (
+            <div className="bg-[#FFF5F8] min-h-screen flex flex-col font-sans pb-20">
+                <Header />
+                <main className="flex-1 flex flex-col items-center justify-center min-h-[50vh]">
+                    <Loader2 className="w-10 h-10 animate-spin text-[#E4187D] mb-4" />
+                    <p className="text-gray-500 font-medium">Đang tải hồ sơ nhà cung cấp...</p>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
 
+    if (!data) {
+        return (
+            <div className="bg-[#FFF5F8] min-h-screen flex flex-col font-sans pb-20">
+                <Header />
+                <main className="flex-1 flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 max-w-md w-full">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy nhà cung cấp</h2>
+                        <p className="text-gray-500 mb-8">Hồ sơ này có thể không tồn tại, đã bị xóa, hoặc đã xảy ra lỗi kết nối.</p>
+                        <Button
+                            onClick={() => router.back()}
+                            className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 py-6 font-bold w-full"
+                        >
+                            <ArrowLeft className="w-5 h-5 mr-2" />
+                            Quay lại trang trước
+                        </Button>
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
     return (
         <div className="bg-[#FFF5F8] min-h-screen font-sans pb-20">
             <Header />
 
-            <main className="max-w-7xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <main className="max-w-7xl mb-8 mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-                {/* CỘT TRÁI (8 phần) */}
                 <div className="lg:col-span-8 space-y-6">
                     {/* Header Box */}
                     <div className="bg-white rounded-3xl p-8 flex flex-col md:flex-row gap-8 shadow-sm">
@@ -69,14 +114,12 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                         </div>
                     </div>
 
-                    {/* Đội ngũ Artist */}
                     <div className="bg-white rounded-3xl p-8 shadow-sm">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-gray-900">Đội ngũ Artist</h2>
                             <span className="text-sm text-[#E4187D] font-medium cursor-pointer">Xem tất cả ({data.artists?.length || 0})</span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* TS tự hiểu "art" là FeaturedArtistDto */}
                             {data.artists?.map((art) => (
                                 <div key={art.id} className="flex gap-4 border border-gray-100 rounded-2xl p-4">
                                     <Image src={art.avatarUrl || defaultAvatar} alt={art.displayName} width={80} height={80} className="rounded-xl object-cover" unoptimized />
@@ -109,7 +152,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                                     </div>
                                     <div className="text-right">
                                         <p className="text-xs text-gray-400">Giá từ</p>
-                                        <p className="font-bold text-gray-900 text-sm mb-2">{svc.price.toLocaleString('vi-VN')}đ</p>
+                                        <p className="font-bold text-gray-900 text-sm mb-2">{Math.round(svc.price * SERVICE_DEPOSITE_AMOUNT).toLocaleString('vi-VN')}đ</p>
 
                                         <Link href={`/services/${svc.id}`}>
                                             <Button size="sm" className="h-7 text-xs bg-[#E4187D] text-white rounded-full px-4 w-full">
@@ -141,7 +184,6 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                         </div>
                     </div>
                 </div>
-
             </main>
             <Footer />
         </div>
