@@ -9,6 +9,7 @@ import Footer from "@/components/footer";
 import { getServiceDetail } from "@/services/artist-service";
 import { useRouter } from "next/navigation";
 import { ServiceDetailResponse } from "@/types/artist";
+import { SERVICE_DEPOSITE_AMOUNT } from "@/common/constant/service-deposite";
 
 export default function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -21,14 +22,13 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
 
     if (!svc) return <div className="min-h-screen flex items-center justify-center">Đang tải...</div>;
 
-    const mainImage = "https://images.unsplash.com/photo-1595051665600-afd01ea7c446?w=800&q=80";
+    const mainImage = svc.mainThumbnailUrl || "https://images.unsplash.com/photo-1595051665600-afd01ea7c446?w=800&q=80";
 
     return (
         <div className="bg-[#FFF5F8] min-h-screen font-sans pb-20">
             <Header />
 
             <main className="max-w-7xl mx-auto px-4 py-8">
-                {/* Breadcrumb */}
                 <div className="text-sm text-[#E4187D] font-medium mb-6">
                     {svc.ownerName} / <span className="font-bold text-gray-900">{svc.name}</span>
                 </div>
@@ -62,20 +62,19 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                         </div>
                     </div>
 
-                    {/* CỘT PHẢI */}
                     <div className="lg:col-span-4 space-y-6">
                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-pink-50">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Giá dịch vụ</p>
                             <div className="text-3xl font-extrabold text-[#E4187D] mb-2">
-                                {svc.price.toLocaleString('vi-VN')}đ
+                                {Math.round(svc.price * SERVICE_DEPOSITE_AMOUNT).toLocaleString('vi-VN')}đ
                             </div>
-                            <div className="flex items-center text-sm text-gray-500"><CheckCircle2 className="w-4 h-4 mr-2 text-gray-400" />Đã bao gồm phí tư vấn</div>
+                            <div className="flex items-center text-sm text-gray-500"><CheckCircle2 className="w-4 h-4 mr-2 text-gray-400" />Đã bao gồm phí tư vấn và phí nền tảng</div>
                         </div>
 
                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-pink-50">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Thời gian thực hiện</p>
                             <div className="text-xl font-bold text-gray-900 mb-2">{svc.duration} Phút</div>
-                            <div className="flex items-center text-sm text-gray-500"><Clock className="w-4 h-4 mr-2 text-gray-400" />Khuyên đặt trước ít nhất 2 tuần</div>
+                            <div className="flex items-center text-sm text-gray-500"><Clock className="w-4 h-4 mr-2 text-gray-400" />Nên đặt trước ít nhất 2 tuần</div>
                         </div>
 
                         <div className="bg-linear-to-br from-[#E4187D] to-[#c9126b] rounded-3xl p-6 shadow-md text-white">
@@ -111,12 +110,10 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                 </div>
 
-                {/* Dịch vụ liên quan */}
                 {svc.relatedServices?.length > 0 && (
                     <div className="mt-16">
                         <h2 className="text-2xl font-bold text-gray-900 mb-6">Các dịch vụ khác của {svc.ownerName}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            {/* TS tự hiểu "rel" là ServiceSimpleDto */}
                             {svc.relatedServices.map((rel) => (
                                 <div key={rel.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                                     <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4">

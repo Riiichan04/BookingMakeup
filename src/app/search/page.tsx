@@ -112,7 +112,7 @@ function ServiceCard({ service }: { service: MakeupService }) {
             padding: "8px 16px", fontSize: 13, fontWeight: 600,
             cursor: "pointer",
           }}
-          onClick={() => window.location.href = `/booking/${service.serviceUuid}?artistId=${service.artistUuid}&serviceData=${encodeURIComponent(JSON.stringify(service))}`}
+          onClick={() => window.location.href = `/services/${service.serviceUuid}`}
           >
             Xem chi tiết
           </button>

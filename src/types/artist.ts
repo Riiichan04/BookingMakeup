@@ -42,4 +42,5 @@ export interface ServiceDetailResponse {
     ownerName: string;
     ownerAvatar: string | null;
     relatedServices: ServiceSimpleDto[];
+    mainThumbnailUrl: string;
 }
