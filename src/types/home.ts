@@ -34,3 +34,28 @@ export interface ReviewDto {
     comment: string;
     createdAt: string;
 }
+
+export interface HomeArtist {
+    id: string;
+    displayName: string;
+    specialty: string;
+    rating: number;
+    reviewsCount: number;
+    avatarUrl: string;
+    priceFrom: number;
+}
+
+export interface HomePromotion {
+    id: string;
+    code: string;
+    discountValue: number;
+    title: string;
+    validUntil: string;
+    imageUrl?: string;
+}
+
+
+export interface HomeDataResponse {
+    featuredArtists: HomeArtist[];
+    promotions: HomePromotion[];
+}

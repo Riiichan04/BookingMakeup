@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Artist } from '@/types/artist';
 import { artistService } from '@/services/artist-service';
 import ArtistCard from '@/components/artists/ArtistCard';
@@ -14,21 +14,26 @@ export default function ArtistManagementPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchArtists = async () => {
+  const fetchArtists = useCallback(async () => {
     try {
       setLoading(true);
       const data = await artistService.getMyArtists();
       setArtists(data);
-    } catch (err: any) {
-      setError(err.message || 'Không thể tải danh sách Artist. Vui lòng thử lại.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Không thể tải danh sách Artist. Vui lòng thử lại.');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchArtists();
-  }, []);
+  }, [fetchArtists]);
 
   if (loading && artists.length === 0) return <div className="p-8 text-center text-gray-500">Đang tải danh sách...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
