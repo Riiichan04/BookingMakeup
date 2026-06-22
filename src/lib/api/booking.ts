@@ -1,4 +1,4 @@
-import { BookingDto, CreateBookingRequest } from "@/types/booking";
+import { BookingDto, CreateBookingRequest, BookingStatus } from "@/types/booking";
 import apiClient from "./client";
 
 // Tạo booking mới
@@ -24,3 +24,10 @@ export async function getBookingsByArtist(artistId: string): Promise<BookingDto[
   const { data } = await apiClient.get<BookingDto[]>(`/bookings/artist/${artistId}`);
   return data;
 }
+
+// Cập nhật trạng thái booking (SO / Artist / Admin)
+export async function updateBookingStatus(id: string, status: BookingStatus): Promise<BookingDto> {
+  const { data } = await apiClient.put<BookingDto>(`/bookings/${id}/status`, { status });
+  return data;
+}
+

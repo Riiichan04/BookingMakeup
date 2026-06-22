@@ -37,3 +37,16 @@ export interface SearchParams {
   page?: number;
   pageSize?: number;
 }
+
+export interface ServiceDto {
+  id: string;
+  ownerId: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  duration: number;
+  isActive: boolean;
+  rating: number;
+}
+

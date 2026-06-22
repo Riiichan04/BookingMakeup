@@ -1,0 +1,991 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { 
+  User, 
+  Settings, 
+  Sparkles, 
+  Calendar, 
+  Tag, 
+  PlusCircle, 
+  Edit, 
+  Trash2, 
+  Loader2, 
+  Check, 
+  X, 
+  CheckCircle,
+  FileImage,
+  Star,
+  MessageSquare
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
+import { 
+  getServiceOwnerProfile, 
+  updateServiceOwnerProfile,
+  getMyServices,
+  createService,
+  updateService,
+  deleteService,
+  getPromotions,
+  createPromotion,
+  updatePromotion,
+  deletePromotion,
+  getReviewsByArtist
+} from "@/lib/api";
+import { getMyBookings, updateBookingStatus } from "@/lib/api/booking";
+
+import { ServiceOwnerProfileDto } from "@/types/user";
+import { ServiceDto } from "@/types/service";
+import { BookingDto, BookingStatus } from "@/types/booking";
+import { PromotionDto } from "@/types/promotion";
+import { ReviewDto } from "@/types/review";
+
+interface SoDashboardProps {
+  userId: string;
+}
+
+export default function SoDashboard({ userId }: SoDashboardProps) {
+  const [activeTab, setActiveTab] = useState<"profile" | "services" | "bookings" | "promotions" | "reviews">("services");
+  const [loading, setLoading] = useState(false);
+
+  // SO Profile State
+  const [soProfile, setSoProfile] = useState<ServiceOwnerProfileDto | null>(null);
+  const [bio, setBio] = useState("");
+  const [experienceYears, setExperienceYears] = useState(1);
+  const [showcaseType, setShowcaseType] = useState<"STANDARD" | "PREMIUM">("STANDARD");
+  const [identityFront, setIdentityFront] = useState("");
+  const [identityBack, setIdentityBack] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Services State
+  const [myServices, setMyServices] = useState<ServiceDto[]>([]);
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  const [editingService, setEditingService] = useState<ServiceDto | null>(null);
+  const [serviceName, setServiceName] = useState("");
+  const [serviceDesc, setServiceDesc] = useState("");
+  const [servicePrice, setServicePrice] = useState(0);
+  const [serviceCat, setServiceCat] = useState("Bride");
+  const [serviceDuration, setServiceDuration] = useState(60);
+  const [serviceActive, setServiceActive] = useState(true);
+  const [savingService, setSavingService] = useState(false);
+
+  // Bookings State
+  const [bookings, setBookings] = useState<BookingDto[]>([]);
+  const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null);
+
+  // Promotions State
+  const [promotions, setPromotions] = useState<PromotionDto[]>([]);
+  const [promoModalOpen, setPromoModalOpen] = useState(false);
+  const [editingPromo, setEditingPromo] = useState<PromotionDto | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoDiscount, setPromoDiscount] = useState(10000);
+  const [promoMinOrder, setPromoMinOrder] = useState(50000);
+  const [promoPointCharge, setPromoPointCharge] = useState(0);
+  const [promoExpiry, setPromoExpiry] = useState("");
+  const [savingPromo, setSavingPromo] = useState(false);
+
+  // Reviews State
+  const [reviews, setReviews] = useState<ReviewDto[]>([]);
+
+  useEffect(() => {
+    fetchProfile();
+    fetchServices();
+    fetchBookings();
+    fetchPromotionsList();
+    fetchReviewsList();
+  }, []);
+
+  // 1. PROFILE FLOWS
+  const fetchProfile = async () => {
+    try {
+      const prof = await getServiceOwnerProfile();
+      setSoProfile(prof);
+      setBio(prof.bio || "");
+      setExperienceYears(prof.experienceYears || 1);
+      setShowcaseType(prof.showcaseType || "STANDARD");
+      setIdentityFront(prof.identityFront || "");
+      setIdentityBack(prof.identityBack || "");
+    } catch {
+      // If profile is not found, we let them create one in update
+      setSoProfile(null);
+    }
+  };
+
+  const fetchReviewsList = async () => {
+    try {
+      const list = await getReviewsByArtist(userId);
+      setReviews(list);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const updated = await updateServiceOwnerProfile({
+        bio,
+        experienceYears,
+        showcaseType,
+        identityFront: identityFront || undefined,
+        identityBack: identityBack || undefined
+      });
+      setSoProfile(updated);
+      toast.success("Cập nhật thông tin Service Owner thành công!");
+    } catch (e: any) {
+      toast.error(e.response?.data || "Lỗi cập nhật thông tin");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // 2. SERVICES FLOWS
+  const fetchServices = async () => {
+    try {
+      const svcs = await getMyServices();
+      setMyServices(svcs);
+    } catch {
+      toast.error("Không thể tải danh sách dịch vụ");
+    }
+  };
+
+  const handleOpenAddService = () => {
+    setEditingService(null);
+    setServiceName("");
+    setServiceDesc("");
+    setServicePrice(100000);
+    setServiceCat("Bride");
+    setServiceDuration(60);
+    setServiceActive(true);
+    setServiceModalOpen(true);
+  };
+
+  const handleOpenEditService = (svc: ServiceDto) => {
+    setEditingService(svc);
+    setServiceName(svc.name);
+    setServiceDesc(svc.description);
+    setServicePrice(svc.price);
+    setServiceCat(svc.category);
+    setServiceDuration(svc.duration);
+    setServiceActive(svc.isActive);
+    setServiceModalOpen(true);
+  };
+
+  const handleSaveService = async () => {
+    if (!serviceName.trim() || !serviceCat.trim() || servicePrice <= 0 || serviceDuration <= 0) {
+      toast.error("Vui lòng điền đầy đủ và đúng thông tin dịch vụ");
+      return;
+    }
+    setSavingService(true);
+    try {
+      if (editingService) {
+        await updateService(editingService.id, {
+          name: serviceName,
+          description: serviceDesc,
+          price: servicePrice,
+          category: serviceCat,
+          duration: serviceDuration,
+          isActive: serviceActive
+        });
+        toast.success("Cập nhật dịch vụ thành công!");
+      } else {
+        await createService({
+          name: serviceName,
+          description: serviceDesc,
+          price: servicePrice,
+          category: serviceCat,
+          duration: serviceDuration
+        });
+        toast.success("Tạo dịch vụ thành công!");
+      }
+      setServiceModalOpen(false);
+      fetchServices();
+    } catch (e: any) {
+      toast.error(e.response?.data || "Thao tác thất bại");
+    } finally {
+      setSavingService(false);
+    }
+  };
+
+  const handleDeleteService = async (id: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa dịch vụ này không?")) return;
+    try {
+      await deleteService(id);
+      toast.success("Xóa dịch vụ thành công!");
+      fetchServices();
+    } catch (e: any) {
+      toast.error(e.response?.data || "Không thể xóa dịch vụ");
+    }
+  };
+
+  // 3. BOOKINGS FLOWS
+  const fetchBookings = async () => {
+    try {
+      const list = await getMyBookings();
+      setBookings(list);
+    } catch {
+      toast.error("Không thể tải danh sách đặt lịch");
+    }
+  };
+
+  const handleUpdateBookingStatus = async (bookingId: string, status: BookingStatus) => {
+    setUpdatingBookingId(bookingId);
+    try {
+      await updateBookingStatus(bookingId, status);
+      toast.success(`Cập nhật trạng thái đặt lịch thành: ${status}`);
+      fetchBookings();
+    } catch (e: any) {
+      toast.error(e.response?.data || "Không thể cập nhật trạng thái");
+    } finally {
+      setUpdatingBookingId(null);
+    }
+  };
+
+  // 4. PROMOTIONS FLOWS
+  const fetchPromotionsList = async () => {
+    try {
+      const list = await getPromotions(userId);
+      setPromotions(list);
+    } catch {
+      toast.error("Không thể tải danh sách khuyến mãi");
+    }
+  };
+
+  const handleOpenAddPromo = () => {
+    setEditingPromo(null);
+    setPromoCode("");
+    setPromoDiscount(10000);
+    setPromoMinOrder(50000);
+    setPromoPointCharge(0);
+    // Expiry date default to 7 days from now
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    setPromoExpiry(nextWeek.toISOString().slice(0, 16));
+    setPromoModalOpen(true);
+  };
+
+  const handleOpenEditPromo = (promo: PromotionDto) => {
+    setEditingPromo(promo);
+    setPromoCode(promo.code);
+    setPromoDiscount(promo.discountValue);
+    setPromoMinOrder(promo.minOrderValue);
+    setPromoPointCharge(promo.pointCharge || 0);
+    setPromoExpiry(promo.expiryDate.slice(0, 16));
+    setPromoModalOpen(true);
+  };
+
+  const handleSavePromo = async () => {
+    if (!promoCode.trim() || promoDiscount <= 0 || promoMinOrder < 0 || !promoExpiry) {
+      toast.error("Vui lòng nhập đầy đủ thông tin mã giảm giá");
+      return;
+    }
+    setSavingPromo(true);
+    try {
+      const formattedExpiry = new Date(promoExpiry).toISOString();
+      if (editingPromo) {
+        await updatePromotion(editingPromo.id, {
+          code: promoCode.trim().toUpperCase(),
+          discountValue: promoDiscount,
+          minOrderValue: promoMinOrder,
+          pointCharge: promoPointCharge,
+          expiryDate: formattedExpiry
+        });
+        toast.success("Cập nhật khuyến mãi thành công!");
+      } else {
+        await createPromotion({
+          ownerId: userId,
+          code: promoCode.trim().toUpperCase(),
+          discountValue: promoDiscount,
+          minOrderValue: promoMinOrder,
+          pointCharge: promoPointCharge,
+          expiryDate: formattedExpiry
+        });
+        toast.success("Tạo khuyến mãi thành công!");
+      }
+      setPromoModalOpen(false);
+      fetchPromotionsList();
+    } catch (e: any) {
+      toast.error(e.response?.data || "Thao tác thất bại");
+    } finally {
+      setSavingPromo(false);
+    }
+  };
+
+  const handleDeletePromo = async (id: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa mã giảm giá này?")) return;
+    try {
+      await deletePromotion(id);
+      toast.success("Xóa mã giảm giá thành công!");
+      fetchPromotionsList();
+    } catch (e: any) {
+      toast.error(e.response?.data || "Không thể xóa khuyến mãi");
+    }
+  };
+
+  const formatPrice = (p: number) => {
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(p);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Sub Tabs */}
+      <div className="flex gap-4 border-b border-gray-100 pb-2">
+        <button
+          onClick={() => setActiveTab("services")}
+          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${
+            activeTab === "services" 
+              ? "border-[#E4187D] text-[#E4187D]" 
+              : "border-transparent text-gray-500 hover:text-gray-900"
+          }`}
+        >
+          Quản Lý Dịch Vụ
+        </button>
+        <button
+          onClick={() => setActiveTab("bookings")}
+          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${
+            activeTab === "bookings" 
+              ? "border-[#E4187D] text-[#E4187D]" 
+              : "border-transparent text-gray-500 hover:text-gray-900"
+          }`}
+        >
+          Quản Lý Đặt Lịch ({bookings.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("promotions")}
+          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${
+            activeTab === "promotions" 
+              ? "border-[#E4187D] text-[#E4187D]" 
+              : "border-transparent text-gray-500 hover:text-gray-900"
+          }`}
+        >
+          Mã Khuyến Mãi ({promotions.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("profile")}
+          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${
+            activeTab === "profile" 
+              ? "border-[#E4187D] text-[#E4187D]" 
+              : "border-transparent text-gray-500 hover:text-gray-900"
+          }`}
+        >
+          Hồ Sơ Cửa Hàng
+        </button>
+        <button
+          onClick={() => setActiveTab("reviews")}
+          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${
+            activeTab === "reviews" 
+              ? "border-[#E4187D] text-[#E4187D]" 
+              : "border-transparent text-gray-500 hover:text-gray-900"
+          }`}
+        >
+          Đánh Giá ({reviews.length})
+        </button>
+      </div>
+
+      {/* TAB 1: MANAGE SERVICES */}
+      {activeTab === "services" && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
+            <div>
+              <h3 className="font-bold text-gray-900">Danh sách các dịch vụ bạn cung cấp</h3>
+              <p className="text-gray-500 text-xs mt-0.5">Khách hàng sẽ nhìn thấy các dịch vụ này trên trang tìm kiếm.</p>
+            </div>
+            <Button 
+              onClick={handleOpenAddService}
+              className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full font-semibold cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4 mr-1.5" />
+              Thêm Dịch Vụ
+            </Button>
+          </div>
+
+          {myServices.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 p-8">
+              <Sparkles className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+              <h3 className="font-bold text-gray-800 mb-1">Chưa có dịch vụ nào</h3>
+              <p className="text-gray-500 text-sm mb-4">Bắt đầu giới thiệu Layout trang điểm của studio để đón khách ngay.</p>
+              <Button onClick={handleOpenAddService} className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full">Tạo dịch vụ đầu tiên</Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {myServices.map(svc => (
+                <div key={svc.id} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between hover:shadow-md transition-shadow">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-bold text-gray-900 text-lg leading-tight">{svc.name}</h4>
+                      <Badge className={svc.isActive ? "bg-green-50 text-green-700 hover:bg-green-50 border-green-200" : "bg-gray-100 text-gray-500 hover:bg-gray-100 border-gray-200"}>
+                        {svc.isActive ? "Đang chạy" : "Ẩn"}
+                      </Badge>
+                    </div>
+                    <Badge variant="outline" className="text-xs text-gray-500 capitalize">{svc.category}</Badge>
+                    <p className="text-sm text-gray-500 line-clamp-3 leading-normal">{svc.description || "Chưa có mô tả chi tiết cho dịch vụ này."}</p>
+                    <div className="flex justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
+                      <span>⏱ {svc.duration} Phút</span>
+                      <span>⭐ {svc.rating ? svc.rating.toFixed(1) : "Chưa có đánh giá"}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center gap-4 pt-3 border-t border-gray-50 mt-auto">
+                    <span className="font-extrabold text-[#E4187D] text-lg">{formatPrice(svc.price)}</span>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleOpenEditService(svc)}
+                        className="p-2 hover:bg-gray-50 border border-gray-100 rounded-lg text-gray-600 transition-colors cursor-pointer"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteService(svc.id)}
+                        className="p-2 hover:bg-red-50 border border-gray-100 rounded-lg text-red-600 hover:border-red-100 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: MANAGE BOOKINGS */}
+      {activeTab === "bookings" && (
+        <div className="space-y-4">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
+            <h3 className="font-bold text-gray-900">Danh sách các yêu cầu đặt lịch hẹn của bạn</h3>
+            <p className="text-gray-500 text-xs mt-0.5">Xác nhận, hoàn tất hoặc hủy bỏ lịch hẹn từ khách hàng.</p>
+          </div>
+
+          {bookings.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 p-8 max-w-md mx-auto">
+              <Calendar className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+              <h3 className="font-bold text-gray-800 text-lg mb-1">Chưa có lịch hẹn nào</h3>
+              <p className="text-gray-500 text-sm">Các yêu cầu đặt lịch từ khách hàng cho dịch vụ của bạn sẽ hiển thị tại đây.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {bookings.map(booking => (
+                <div key={booking.id} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-gray-900 text-lg">{booking.serviceName}</span>
+                      <span className="text-xs text-gray-400">Khách: {booking.customerDisplayName || "Chưa cập nhật"}</span>
+                      <Badge 
+                        className={
+                          booking.status === "CONFIRMED" ? "bg-green-100 text-green-700 hover:bg-green-100 border-none" :
+                          booking.status === "COMPLETED" ? "bg-blue-100 text-blue-700 hover:bg-blue-100 border-none" :
+                          booking.status === "CANCELLED" ? "bg-red-100 text-red-700 hover:bg-red-100 border-none" :
+                          "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-none"
+                        }
+                      >
+                        {booking.status === "PENDING" ? "Chờ Xác Nhận" :
+                         booking.status === "CONFIRMED" ? "Đã Xác Nhận" :
+                         booking.status === "COMPLETED" ? "Đã Hoàn Thành" : "Đã Hủy"}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-gray-500">
+                      <p>⏱ Khung giờ: {booking.startTime.slice(0,5)} - {booking.endTime.slice(0,5)}</p>
+                      <p>📅 Ngày hẹn: {booking.bookingDate.split("-").reverse().join("/")}</p>
+                    </div>
+                    <div className="flex gap-4 text-xs text-gray-400">
+                      <p>Tổng tiền: <span className="font-semibold text-gray-700">{formatPrice(booking.totalAmount)}</span></p>
+                      <p>Khách đã cọc: <span className="font-semibold text-pink-600">{formatPrice(booking.depositAmount)}</span></p>
+                    </div>
+                  </div>
+
+                  {/* Booking Actions */}
+                  <div className="flex gap-2 w-full md:w-auto self-end md:self-center shrink-0">
+                    {updatingBookingId === booking.id ? (
+                      <div className="flex items-center gap-1.5 text-gray-400 text-xs font-semibold py-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-[#E4187D]" />
+                        Đang lưu...
+                      </div>
+                    ) : (
+                      <>
+                        {booking.status === "PENDING" && (
+                          <>
+                            <Button
+                              onClick={() => handleUpdateBookingStatus(booking.id, "CONFIRMED")}
+                              className="bg-green-600 hover:bg-green-700 text-white rounded-full text-xs font-bold px-4 py-2 cursor-pointer flex items-center gap-1"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Chấp Nhận
+                            </Button>
+                            <Button
+                              onClick={() => handleUpdateBookingStatus(booking.id, "CANCELLED")}
+                              variant="outline"
+                              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-full text-xs font-bold px-4 py-2 cursor-pointer flex items-center gap-1"
+                            >
+                              <X className="w-3.5 h-3.5" /> Từ Chối
+                            </Button>
+                          </>
+                        )}
+                        {booking.status === "CONFIRMED" && (
+                          <>
+                            <Button
+                              onClick={() => handleUpdateBookingStatus(booking.id, "COMPLETED")}
+                              className="bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-bold px-4 py-2 cursor-pointer flex items-center gap-1"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" /> Hoàn Thành
+                            </Button>
+                            <Button
+                              onClick={() => handleUpdateBookingStatus(booking.id, "CANCELLED")}
+                              variant="outline"
+                              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-full text-xs font-bold px-4 py-2 cursor-pointer flex items-center gap-1"
+                            >
+                              <X className="w-3.5 h-3.5" /> Hủy Lịch
+                            </Button>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: MANAGE PROMOTIONS */}
+      {activeTab === "promotions" && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
+            <div>
+              <h3 className="font-bold text-gray-900">Mã giảm giá độc quyền của studio</h3>
+              <p className="text-gray-500 text-xs mt-0.5">Tạo các coupon code ưu đãi dành riêng cho dịch vụ của bạn.</p>
+            </div>
+            <Button 
+              onClick={handleOpenAddPromo}
+              className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full font-semibold cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4 mr-1.5" />
+              Tạo Coupon
+            </Button>
+          </div>
+
+          {promotions.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 p-8 max-w-md mx-auto">
+              <Tag className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+              <h3 className="font-bold text-gray-800 text-lg mb-1">Chưa có mã giảm giá nào</h3>
+              <p className="text-gray-500 text-sm mb-4">Tạo mã giảm giá để tăng cường chuyển đổi đặt lịch của khách hàng.</p>
+              <Button onClick={handleOpenAddPromo} className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full">Tạo mã đầu tiên</Button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead className="bg-gray-50 text-gray-700 uppercase text-[11px] font-bold tracking-wider">
+                  <tr>
+                    <th className="p-4 border-b border-gray-100">Mã Code</th>
+                    <th className="p-4 border-b border-gray-100">Giá Trị Giảm</th>
+                    <th className="p-4 border-b border-gray-100">Đơn Tối Thiểu</th>
+                    <th className="p-4 border-b border-gray-100">Điểm Đổi</th>
+                    <th className="p-4 border-b border-gray-100">Hạn Sử Dụng</th>
+                    <th className="p-4 border-b border-gray-100 text-right">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-gray-700 font-medium">
+                  {promotions.map(promo => (
+                    <tr key={promo.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="p-4 font-mono font-bold text-pink-600 text-base">{promo.code}</td>
+                      <td className="p-4 text-[#E4187D] font-extrabold">{formatPrice(promo.discountValue)}</td>
+                      <td className="p-4">{formatPrice(promo.minOrderValue)}</td>
+                      <td className="p-4">
+                        <Badge variant="secondary">{promo.pointCharge || 0} điểm</Badge>
+                      </td>
+                      <td className="p-4 text-xs text-gray-500">{new Date(promo.expiryDate).toLocaleString("vi-VN")}</td>
+                      <td className="p-4 text-right">
+                        <div className="flex gap-2 justify-end">
+                          <button 
+                            onClick={() => handleOpenEditPromo(promo)}
+                            className="p-1.5 hover:bg-gray-50 border border-gray-100 rounded-lg text-gray-600 cursor-pointer"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeletePromo(promo.id)}
+                            className="p-1.5 hover:bg-red-50 border border-gray-100 rounded-lg text-red-600 hover:border-red-100 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 4: MY PROFILE (SO PROFILE) */}
+      {activeTab === "profile" && (
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-6">
+          <div>
+            <h3 className="font-bold text-gray-900 text-lg">Thông Tin Cửa Hàng / Studio</h3>
+            <p className="text-gray-500 text-xs">Cập nhật tiểu sử, kinh nghiệm và giấy tờ xác minh để khách hàng tin tưởng.</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tiểu sử (Bio)</label>
+              <textarea
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100 min-h-[100px]"
+                placeholder="Giới thiệu phong cách trang điểm, thế mạnh của studio của bạn..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Số năm kinh nghiệm</label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={experienceYears}
+                  onChange={(e) => setExperienceYears(parseInt(e.target.value) || 0)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Gói hiển thị (Showcase Type)</label>
+                <select
+                  className="w-full border border-gray-200 rounded-lg p-2.5 bg-white text-sm focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100"
+                  value={showcaseType}
+                  onChange={(e) => setShowcaseType(e.target.value as "STANDARD" | "PREMIUM")}
+                >
+                  <option value="STANDARD">STANDARD (Gói Cơ Bản)</option>
+                  <option value="PREMIUM">PREMIUM (Nổi Bật - Ưu Tiên)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileImage className="w-4 h-4 text-gray-400" /> Mặt trước CMND/CCCD (URL)
+                </label>
+                <Input
+                  placeholder="Link hình ảnh mặt trước..."
+                  value={identityFront}
+                  onChange={(e) => setIdentityFront(e.target.value)}
+                />
+                {identityFront && (
+                  <div className="relative h-32 border rounded-xl overflow-hidden mt-1.5 bg-gray-50 flex items-center justify-center">
+                    <img src={identityFront} alt="CCCD Front" className="h-full object-contain" />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileImage className="w-4 h-4 text-gray-400" /> Mặt sau CMND/CCCD (URL)
+                </label>
+                <Input
+                  placeholder="Link hình ảnh mặt sau..."
+                  value={identityBack}
+                  onChange={(e) => setIdentityBack(e.target.value)}
+                />
+                {identityBack && (
+                  <div className="relative h-32 border rounded-xl overflow-hidden mt-1.5 bg-gray-50 flex items-center justify-center">
+                    <img src={identityBack} alt="CCCD Back" className="h-full object-contain" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t border-gray-50">
+              <div className="text-xs text-gray-400">
+                Trạng thái duyệt: <span className="font-semibold text-gray-700 uppercase">{soProfile?.verificationStatus || "pending"}</span>
+              </div>
+              <Button 
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 font-semibold cursor-pointer"
+              >
+                {savingProfile ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  "Lưu Thay Đổi"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: SERVICE OWNER REVIEWS */}
+      {activeTab === "reviews" && (
+        <div className="space-y-4">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h3 className="font-bold text-gray-900 text-lg">Danh Sách Nhận Xét & Đánh Giá</h3>
+              <p className="text-gray-500 text-xs mt-0.5">Phản hồi thực tế từ khách hàng đã trải nghiệm dịch vụ của studio.</p>
+            </div>
+            <div className="flex items-center bg-yellow-50 text-yellow-700 px-4 py-2.5 rounded-2xl border border-yellow-100 font-bold text-sm">
+              <Star className="w-4 h-4 fill-yellow-500 text-yellow-500 mr-1.5 shrink-0" />
+              <span>
+                {reviews.length > 0
+                  ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
+                  : "0.0"}{" "}
+                / 5 ({reviews.length} đánh giá)
+              </span>
+            </div>
+          </div>
+
+          {reviews.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 p-8 max-w-md mx-auto">
+              <MessageSquare className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+              <h3 className="font-bold text-gray-800 text-lg mb-1">Chưa có đánh giá nào</h3>
+              <p className="text-gray-500 text-sm">Khi khách hàng hoàn tất dịch vụ và gửi đánh giá, kết quả sẽ hiển thị ở đây.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {reviews.map((r) => (
+                <div
+                  key={r.id}
+                  className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between hover:shadow-md transition-shadow"
+                >
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-base">{r.service}</h4>
+                        <p className="text-xs text-gray-400 mt-0.5">Khách hàng: {r.customer}</p>
+                      </div>
+                      <Badge
+                        className={
+                          r.status === "APPROVED"
+                            ? "bg-green-50 text-green-700 hover:bg-green-50 border-green-200"
+                            : r.status === "HIDDEN"
+                            ? "bg-red-50 text-red-700 hover:bg-red-50 border-red-200"
+                            : "bg-yellow-50 text-yellow-700 hover:bg-yellow-50 border-yellow-200"
+                        }
+                      >
+                        {r.status === "APPROVED" ? "Đã Duyệt" : r.status === "HIDDEN" ? "Đã Ẩn" : "Chờ Duyệt"}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-xs">
+                      <div className="flex items-center text-yellow-500 font-bold">
+                        <Star className="w-3.5 h-3.5 fill-current mr-1" />
+                        <span>{r.rating} / 5</span>
+                      </div>
+                      <span className="text-gray-300">|</span>
+                      <span className="text-gray-400">📅 Ngày: {r.date}</span>
+                    </div>
+
+                    <p className="text-sm text-gray-600 italic bg-gray-50/50 p-4 rounded-2xl border border-gray-100/30 leading-relaxed font-normal">
+                      &quot;{r.comment}&quot;
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SERVICE MODAL */}
+      {serviceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-scale-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <h2 className="text-xl font-bold text-gray-900">{editingService ? "Chỉnh Sửa Dịch Vụ" : "Thêm Dịch Vụ Mới"}</h2>
+              <button 
+                onClick={() => setServiceModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 font-bold text-xl cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tên dịch vụ</label>
+                <Input
+                  placeholder="VD: Trang điểm Cô Dâu VIP, Đi Tiệc..."
+                  value={serviceName}
+                  onChange={(e) => setServiceName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Danh mục</label>
+                <select
+                  className="w-full border border-gray-200 rounded-lg p-2.5 bg-white text-sm focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100"
+                  value={serviceCat}
+                  onChange={(e) => setServiceCat(e.target.value)}
+                >
+                  <option value="Bride">Cô dâu (Bride)</option>
+                  <option value="Party">Đi tiệc (Party)</option>
+                  <option value="Daily">Hằng ngày (Daily)</option>
+                  <option value="Celebrity">Sự kiện/Sân khấu (Celebrity)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Giá tiền (VND)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={servicePrice}
+                    onChange={(e) => setServicePrice(parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Thời lượng thực hiện (Phút)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={serviceDuration}
+                    onChange={(e) => setServiceDuration(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Mô tả dịch vụ</label>
+                <textarea
+                  className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100 min-h-[80px]"
+                  placeholder="Ghi chú chi tiết về layout, loại mỹ phẩm, quà tặng đi kèm..."
+                  value={serviceDesc}
+                  onChange={(e) => setServiceDesc(e.target.value)}
+                />
+              </div>
+
+              {editingService && (
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="serviceActive"
+                    className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500 cursor-pointer"
+                    checked={serviceActive}
+                    onChange={(e) => setServiceActive(e.target.checked)}
+                  />
+                  <label htmlFor="serviceActive" className="text-sm font-semibold text-gray-700 cursor-pointer">Cho phép hiển thị/Hoạt động</label>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 justify-end pt-3 border-t border-gray-100">
+              <Button variant="outline" className="rounded-full px-6" onClick={() => setServiceModalOpen(false)}>
+                Hủy bỏ
+              </Button>
+              <Button 
+                onClick={handleSaveService}
+                disabled={savingService}
+                className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 font-semibold cursor-pointer"
+              >
+                {savingService ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  "Lưu Lại"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PROMO MODAL */}
+      {promoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-scale-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <h2 className="text-xl font-bold text-gray-900">{editingPromo ? "Chỉnh Sửa Coupon" : "Tạo Mã Coupon Mới"}</h2>
+              <button 
+                onClick={() => setPromoModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 font-bold text-xl cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Mã giảm giá (Code)</label>
+                <Input
+                  placeholder="VD: SUMMERSALE20, BRIDE50..."
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Số tiền giảm (VND)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={promoDiscount}
+                    onChange={(e) => setPromoDiscount(parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Đơn hàng tối thiểu (VND)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={promoMinOrder}
+                    onChange={(e) => setPromoMinOrder(parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Điểm tích lũy để đổi</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={promoPointCharge}
+                    onChange={(e) => setPromoPointCharge(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Hạn sử dụng</label>
+                  <Input
+                    type="datetime-local"
+                    value={promoExpiry}
+                    onChange={(e) => setPromoExpiry(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-3 border-t border-gray-100">
+              <Button variant="outline" className="rounded-full px-6" onClick={() => setPromoModalOpen(false)}>
+                Hủy bỏ
+              </Button>
+              <Button 
+                onClick={handleSavePromo}
+                disabled={savingPromo}
+                className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 font-semibold cursor-pointer"
+              >
+                {savingPromo ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  "Tạo Mã"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
