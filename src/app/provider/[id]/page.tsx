@@ -9,9 +9,9 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { getProviderProfile } from "@/services/artist-service";
 import { defaultAvatar } from "@/common/constant/default-avatar";
-import { ProviderProfileResponse } from "@/types/artist";
 import { useRouter } from "next/navigation";
 import { SERVICE_DEPOSITE_AMOUNT } from "@/common/constant/service-deposite";
+import { ProviderProfileResponse } from "@/types/service-provider";
 
 export default function ProviderProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);

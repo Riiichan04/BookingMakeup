@@ -1,9 +1,10 @@
 import { apiUrl } from "@/common/constant/api-url";
-import { ProviderProfileResponse, ServiceDetailResponse } from "@/types/artist";
+import { ServiceDetailResponse } from "@/types/artist";
+import { ProviderProfileResponse } from "@/types/service-provider";
 
 export const getProviderProfile = async (id: string): Promise<ProviderProfileResponse | null> => {
     try {
-        const res = await fetch(`${apiUrl}/profile/artists/providers/${id}`);
+        const res = await fetch(`${apiUrl}/profile/providers/${id}`);
         if (!res.ok) return null;
 
         const result = await res.json() as ProviderProfileResponse;
@@ -17,7 +18,7 @@ export const getProviderProfile = async (id: string): Promise<ProviderProfileRes
 
 export const getServiceDetail = async (id: string): Promise<ServiceDetailResponse | null> => {
     try {
-        const res = await fetch(`${apiUrl}/profile/artists/services/${id}`);
+        const res = await fetch(`${apiUrl}/profile/providers/services/${id}`);
         if (!res.ok) return null;
         return await res.json() as ServiceDetailResponse;
     } catch (error) {
