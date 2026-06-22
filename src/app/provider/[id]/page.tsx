@@ -9,9 +9,9 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { getProviderProfile } from "@/services/artist-service";
 import { defaultAvatar } from "@/common/constant/default-avatar";
-import { ProviderProfileResponse } from "@/types/artist";
 import { useRouter } from "next/navigation";
 import { SERVICE_DEPOSITE_AMOUNT } from "@/common/constant/service-deposite";
+import { ProviderProfileResponse } from "@/types/service-provider";
 
 export default function ProviderProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -74,7 +74,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
             <main className="max-w-7xl mb-8 mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
                 <div className="lg:col-span-8 space-y-6">
-                    {/* Header Box */}
+                    {/* Header */}
                     <div className="bg-white rounded-3xl p-8 flex flex-col md:flex-row gap-8 shadow-sm">
                         <div className="w-32 h-32 rounded-full border-4 border-pink-100 overflow-hidden shrink-0 relative bg-gray-50 flex items-center justify-center">
                             {data.avatarUrl ? (

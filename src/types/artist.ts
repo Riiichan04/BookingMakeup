@@ -17,20 +17,6 @@ export interface ServiceSimpleDto {
     imageUrl: string;
 }
 
-export interface ProviderProfileResponse {
-    ownerId: string;
-    displayName: string;
-    avatarUrl: string | null;
-    address: string;
-    experienceYears: number;
-    bio: string;
-    averageRating: number;
-    totalReviews: number;
-    totalCustomers: number;
-    artists: FeaturedArtistDto[];
-    services: ServiceSimpleDto[];
-}
-
 export interface ServiceDetailResponse {
     serviceId: string;
     name: string;
