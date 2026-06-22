@@ -43,7 +43,6 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         );
     }
 
-    // 2. TRẠNG THÁI: LỖI HOẶC KHÔNG TÌM THẤY DỊCH VỤ (Có Header & Footer + Nút Back)
     if (!svc) {
         return (
             <div className="bg-[#FFF5F8] min-h-screen flex flex-col font-sans pb-20">
@@ -66,8 +65,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         );
     }
 
-    // 3. TRẠNG THÁI: THÀNH CÔNG (Render UI như cũ)
-    const mainImage = svc.mainThumbnailUrl || "https://images.unsplash.com/photo-1595051665600-afd01ea7c446?w=800&q=80";
+    const mainImage = svc.mainThumbnailUrl;
 
     return (
         <div className="bg-[#FFF5F8] min-h-screen font-sans pb-20">
@@ -80,7 +78,6 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-                    {/* CỘT TRÁI */}
                     <div className="lg:col-span-8 space-y-8">
                         <div>
                             <h1 className="text-4xl font-bold text-gray-900 mb-3">{svc.name}</h1>
@@ -107,7 +104,6 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                         </div>
                     </div>
 
-                    {/* CỘT PHẢI */}
                     <div className="lg:col-span-4 space-y-6">
                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-pink-50">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Giá dịch vụ</p>
@@ -156,7 +152,6 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                 </div>
 
-                {/* DỊCH VỤ LIÊN QUAN */}
                 {svc.relatedServices?.length > 0 && (
                     <div className="mt-16">
                         <h2 className="text-2xl font-bold text-gray-900 mb-6">Các dịch vụ khác của {svc.ownerName}</h2>
