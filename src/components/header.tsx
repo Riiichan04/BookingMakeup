@@ -23,7 +23,7 @@ const logoFont = Playwrite_US_Trad({
 });
 
 export default function Header() {
-    const { user, logout } = useAuth();
+    const { user, logout, isLoading } = useAuth();
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -72,7 +72,9 @@ export default function Header() {
                     <Bell className="w-5 h-5" />
                 </Button>
 
-                {user ? (
+                {isLoading ? (
+                    <div className="h-9 w-9 rounded-full bg-gray-100 animate-pulse" aria-hidden />
+                ) : user ? (
                     <DropdownMenu>
                         <DropdownMenuTrigger className="relative h-9 w-9 rounded-full border cursor-pointer hover:opacity-90 transition-opacity focus:outline-none">
                             <Avatar className="h-9 w-9">
