@@ -11,13 +11,15 @@ import {
   ChevronRight,
   Star,
   MapPin,
-  CheckCircle,
   Loader2,
   AlertCircle,
 } from "lucide-react";
 import { MakeupService } from "@/types/service";
-import { BookingDto } from "@/types/booking";
 import { createBooking, getBookingsByArtist } from "@/lib/api/booking";
+import { generatePaymentUrl } from "@/services/payment-service";
+import Image from "next/image";
+import { getServiceDetail } from "@/services/artist-service";
+import { ServiceDetailResponse } from "@/types/artist";
 
 // Helpers
 
@@ -164,16 +166,34 @@ export default function BookingPage() {
   const serviceId = params.serviceId as string;
   const artistId = searchParams.get("artistId") ?? "";
 
-  // Parse service data từ query string (truyền từ SearchPage)
   const [service, setService] = useState<MakeupService | null>(null);
 
   useEffect(() => {
-    const raw = searchParams.get("serviceData");
-    if (raw) {
-      try { setService(JSON.parse(decodeURIComponent(raw))); } catch { /* ignore */ }
-    }
-  }, [searchParams]);
+    if (!serviceId) return;
 
+    getServiceDetail(serviceId).then((res: ServiceDetailResponse | null) => {
+      if (res) {
+        setService({
+          serviceUuid: res.serviceId,
+          artistUuid: res.ownerId,
+          title: res.name,
+          category: res.category || "",
+          categoryTag: res.category || "",
+          categoryTagColor: "pink",
+          artistName: res.ownerName || "",
+          artistInitials: res.ownerName ? res.ownerName.charAt(0).toUpperCase() : "A",
+          artistColor: "#ec4899",
+          rating: res.rating || 0,          
+          reviewCount: res.reviewCount || 0, 
+          priceFrom: res.price,
+          duration: res.duration,
+          imageUrl: res.mainThumbnailUrl || "",
+          location: res.address || "",      
+          description: res.description || ""
+        });
+      }
+    }).catch(err => console.error("Không lấy được thông tin dịch vụ", err));
+  }, [serviceId]);
   // Booking state
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -183,15 +203,13 @@ export default function BookingPage() {
 
   // UI state
   const [loading, setLoading] = useState(false);
-  const [loadingSchedule, setLoadingSchedule] = useState(false);
-  const [result, setResult] = useState<BookingDto | null>(null);
+  const [paymentRedirecting, setPaymentRedirecting] = useState(false);
+  const [loadingSchedule, setLoadingSchedule] = useState(!!artistId);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<"form" | "success">("form");
 
   // Load lịch bận của artist
   useEffect(() => {
     if (!artistId) return;
-    setLoadingSchedule(true);
     getBookingsByArtist(artistId)
       .then(bookings => {
         const dates = new Set<string>();
@@ -217,17 +235,15 @@ export default function BookingPage() {
   // Tính giá
   const basePrice = service?.priceFrom ?? 0;
   const depositAmount = Math.round(basePrice * 0.55);
-  const platformFee = Math.round(depositAmount * 0.15);  // 15% của tiền cọc
-  const totalAmount = basePrice;
 
-  // Submit booking
+  // Submit booking & Payment
   const handleSubmit = async () => {
     if (!selectedDate || !selectedTime) {
       setError("Vui lòng chọn ngày và giờ.");
       return;
     }
 
-    // Kiểm tra đăng nhập — auth lưu ở localStorage "user_data"
+    // Kiểm tra đăng nhập
     const raw = typeof window !== "undefined" ? localStorage.getItem("user_data") : null;
     if (!raw) {
       router.push("/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search));
@@ -239,80 +255,31 @@ export default function BookingPage() {
     try {
       const booking = await createBooking({
         serviceId,
-        artistId,
+        ownerId: artistId, //TODO: Fix this to real artist in service or keep using service owner
         bookingDate: selectedDate,
         startTime: selectedTime,
         promoCode: promoCode.trim() || undefined,
       });
-      setResult(booking);
-      setStep("success");
+
+      setPaymentRedirecting(true);
+      const payRes = await generatePaymentUrl(booking.id);
+
+      if (payRes.code === "00" && payRes.data) {
+        // 3. ĐÁ KHÁCH SANG TRANG VNPAY NGAY VÀ LUÔN!
+        window.location.href = payRes.data;
+      } else {
+        setError(payRes.message || "Lỗi tạo link thanh toán. Vui lòng thử lại.");
+        setLoading(false);
+        setPaymentRedirecting(false);
+      }
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: string } })?.response?.data ?? "Đặt lịch thất bại. Vui lòng thử lại.";
+      console.log(e)
       setError(typeof msg === "string" ? msg : "Đặt lịch thất bại.");
-    } finally {
       setLoading(false);
+      setPaymentRedirecting(false);
     }
   };
-
-  // Success screen
-  if (step === "success" && result) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <div style={{
-          background: "#fff", borderRadius: 24, padding: 48, maxWidth: 480, width: "100%",
-          textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
-        }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: "50%", background: "#fdf2f8",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 20px",
-          }}>
-            <CheckCircle size={40} style={{ color: "#ec4899" }} />
-          </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: "#111827", marginBottom: 8 }}>
-            Đặt lịch thành công!
-          </h2>
-          <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 28 }}>
-            Yêu cầu của bạn đã được gửi. Thợ trang điểm sẽ xác nhận trong thời gian sớm nhất.
-          </p>
-
-          <div style={{ background: "#f9fafb", borderRadius: 16, padding: 20, textAlign: "left", marginBottom: 28 }}>
-            <InfoRow label="Dịch vụ" value={result.serviceName} />
-            <InfoRow label="Thợ trang điểm" value={result.artistName} />
-            <InfoRow label="Ngày" value={result.bookingDate?.split("-").reverse().join("-")} />
-            <InfoRow label="Giờ bắt đầu" value={result.startTime?.slice(0, 5)} />
-            <InfoRow label="Giờ kết thúc" value={result.endTime?.slice(0, 5)} />
-            <InfoRow label="Tổng tiền" value={formatVND(result.totalAmount)} highlight />
-            <InfoRow label="Đặt cọc (55%)" value={formatVND(result.depositAmount)} />
-            <InfoRow label="Trạng thái" value="Chờ xác nhận" badge />
-          </div>
-
-          <div style={{ display: "flex", gap: 12 }}>
-            <button
-              onClick={() => router.push("/search")}
-              style={{
-                flex: 1, padding: "12px 0", borderRadius: 12,
-                border: "1.5px solid #e5e7eb", background: "#fff",
-                fontSize: 14, fontWeight: 600, color: "#374151", cursor: "pointer",
-              }}
-            >
-              Tìm kiếm thêm
-            </button>
-            <button
-              onClick={() => router.push("/")}
-              style={{
-                flex: 1, padding: "12px 0", borderRadius: 12,
-                border: "none", background: "#ec4899",
-                fontSize: 14, fontWeight: 600, color: "#fff", cursor: "pointer",
-              }}
-            >
-              Về trang chủ
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Form screen
   return (
@@ -344,10 +311,13 @@ export default function BookingPage() {
             {service && (
               <SectionCard title="Thông tin dịch vụ">
                 <div style={{ display: "flex", gap: 16 }}>
-                  <img
+                  <Image
                     src={service.imageUrl}
                     alt={service.title}
-                    style={{ width: 96, height: 96, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
+                    width={96}
+                    height={96}
+                    unoptimized
+                    style={{ borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
                   />
                   <div style={{ flex: 1 }}>
                     <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "#111827" }}>
@@ -572,18 +542,18 @@ export default function BookingPage() {
                 {loading ? (
                   <>
                     <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
-                    Đang xử lý...
+                    {paymentRedirecting ? "Đang chuyển hướng VNPay..." : "Đang xử lý..."}
                   </>
                 ) : (
                   <>
                     <User size={16} />
-                    Xác nhận đặt lịch
+                    Xác nhận đặt lịch & Thanh toán
                   </>
                 )}
               </button>
 
               <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 12, marginBottom: 0 }}>
-                Bạn sẽ thanh toán đặt cọc sau khi thợ trang điểm xác nhận
+                Bạn sẽ thanh toán đặt cọc trên cổng VNPay
               </p>
             </div>
           </div>
@@ -621,28 +591,6 @@ function SummaryRow({
       <span style={{ color: "#9ca3af", flexShrink: 0 }}>{icon}</span>
       <span style={{ fontSize: 13, color: "#6b7280", flex: 1 }}>{label}</span>
       <span style={{ fontSize: 13, fontWeight: 500, color: empty ? "#d1d5db" : "#111827" }}>{value}</span>
-    </div>
-  );
-}
-
-function InfoRow({
-  label, value, highlight, badge,
-}: {
-  label: string; value: string; highlight?: boolean; badge?: boolean;
-}) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-      <span style={{ fontSize: 13, color: "#6b7280" }}>{label}</span>
-      {badge ? (
-        <span style={{
-          background: "#fef9c3", color: "#ca8a04",
-          fontSize: 12, fontWeight: 600, padding: "2px 10px", borderRadius: 20,
-        }}>{value}</span>
-      ) : (
-        <span style={{ fontSize: 13, fontWeight: highlight ? 700 : 500, color: highlight ? "#ec4899" : "#111827" }}>
-          {value}
-        </span>
-      )}
     </div>
   );
 }

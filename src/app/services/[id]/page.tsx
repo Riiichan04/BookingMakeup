@@ -14,7 +14,7 @@ import { SERVICE_DEPOSITE_AMOUNT } from "@/common/constant/service-deposite";
 export default function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const router = useRouter();
-    
+
     const [svc, setSvc] = useState<ServiceDetailResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -51,8 +51,8 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                     <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 max-w-md w-full">
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy dịch vụ</h2>
                         <p className="text-gray-500 mb-8">Dịch vụ này có thể không tồn tại, đã bị xóa, hoặc đã xảy ra lỗi kết nối.</p>
-                        <Button 
-                            onClick={() => router.back()} 
+                        <Button
+                            onClick={() => router.back()}
                             className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 py-6 font-bold w-full"
                         >
                             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -124,7 +124,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                             <h3 className="text-2xl font-bold mb-6">{svc.ownerName}</h3>
                             <Button
                                 className="w-full bg-white text-[#E4187D] hover:bg-gray-50 hover:text-[#E4187D] rounded-full font-bold py-6 text-base transition-colors"
-                                onClick={() => router.push(`/booking/${svc.serviceId}`)}
+                                onClick={() => router.push(`/booking/${svc.serviceId}?artistId=${svc.ownerId}`)}
                             >
                                 ĐẶT LỊCH NGAY
                             </Button>
@@ -164,8 +164,8 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                                     <h3 className="font-bold text-gray-900 text-sm mb-2 line-clamp-2">{rel.name}</h3>
                                     <div className="flex items-center justify-between mt-auto">
                                         <p className="font-bold text-[#E4187D] text-sm">{rel.price.toLocaleString('vi-VN')}đ</p>
-                                        <Button 
-                                            size="sm" 
+                                        <Button
+                                            size="sm"
                                             className="bg-[#E4187D] text-white rounded-full text-xs h-7 hover:bg-[#c9126b]"
                                             onClick={() => router.push(`/services/${rel.id}`)}
                                         >
