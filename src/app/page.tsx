@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Star, MapPin, Search, CalendarHeart, Sparkles, ArrowRight, Gem, GraduationCap, Drama } from "lucide-react";
-import { mockReviews } from "@/data/mock-data";
+// import { mockReviews } from "@/data/mock-data";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
@@ -239,13 +239,13 @@ export default function HomePage() {
                         Gia nhập cộng đồng <span className="font-normal text-white">BookingMakeup</span> ngay hôm nay để tiếp cận hàng ngàn khách hàng tiềm năng, quản lý lịch trình chuyên nghiệp và bứt phá thu nhập của bạn.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <Link href="/register/artist">
+                        <Link href="/register/service-owner">
                             <Button className="bg-white text-[#E4187D] hover:bg-gray-50 hover:scale-105 rounded-full px-8 py-6 font-bold text-base shadow-xl transition-all w-full sm:w-auto">
                                 Đăng ký làm Đối tác
                                 <ArrowRight className="w-5 h-5 ml-2" />
                             </Button>
                         </Link>
-                        <Link href="/about-artists">
+                        <Link href="/about-service-owner">
                             <Button variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white/10 rounded-full px-8 py-6 font-bold text-base transition-colors w-full sm:w-auto">
                                 Tìm hiểu thêm
                             </Button>
@@ -281,30 +281,30 @@ export default function HomePage() {
                 <div className="max-w-7xl mx-auto px-4 md:px-8">
                     <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Khách Hàng Nói Gì Về Chúng Tôi</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {mockReviews.map((review) => (
-                            <div key={review.id} className="bg-white p-6 rounded-2xl relative shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                                <div className="flex gap-1 mb-4">
-                                    {[...Array(review.rating)].map((_, i) => (
-                                        <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                    ))}
-                                </div>
-                                <p className="text-gray-600 text-sm leading-relaxed mb-6 italic">&quot;{review.comment}&quot;</p>
-                                <div className="flex items-center gap-3">
-                                    <Image
-                                        src={review.customerAvatar}
-                                        alt={review.customerName}
-                                        width={40}
-                                        height={40}
-                                        unoptimized
-                                        className="rounded-full border-2 border-gray-50 shadow-sm"
-                                    />
-                                    <div>
-                                        <h4 className="font-bold text-sm text-gray-900">{review.customerName}</h4>
-                                        <p className="text-xs text-gray-400">{review.serviceName} • {review.createdAt}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                        {/*{mockReviews.map((review) => (*/}
+                        {/*    <div key={review.id} className="bg-white p-6 rounded-2xl relative shadow-sm border border-gray-100 hover:shadow-md transition-shadow">*/}
+                        {/*        <div className="flex gap-1 mb-4">*/}
+                        {/*            {[...Array(review.rating)].map((_, i) => (*/}
+                        {/*                <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />*/}
+                        {/*            ))}*/}
+                        {/*        </div>*/}
+                        {/*        <p className="text-gray-600 text-sm leading-relaxed mb-6 italic">&quot;{review.comment}&quot;</p>*/}
+                        {/*        <div className="flex items-center gap-3">*/}
+                        {/*            <Image*/}
+                        {/*                src={review.customerAvatar}*/}
+                        {/*                alt={review.customerName}*/}
+                        {/*                width={40}*/}
+                        {/*                height={40}*/}
+                        {/*                unoptimized*/}
+                        {/*                className="rounded-full border-2 border-gray-50 shadow-sm"*/}
+                        {/*            />*/}
+                        {/*            <div>*/}
+                        {/*                <h4 className="font-bold text-sm text-gray-900">{review.customerName}</h4>*/}
+                        {/*                <p className="text-xs text-gray-400">{review.serviceName} • {review.createdAt}</p>*/}
+                        {/*            </div>*/}
+                        {/*        </div>*/}
+                        {/*    </div>*/}
+                        {/*))}*/}
                     </div>
                 </div>
             </section>

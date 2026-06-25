@@ -2,7 +2,16 @@
 
 import { AuthDto } from "@/types/auth";
 import Cookies from "js-cookie";
-import { createContext, useContext, useState, } from "react";
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useMemo,
+    useSyncExternalStore,
+} from "react";
+
+const USER_DATA_KEY = "user_data";
+const AUTH_CHANGE_EVENT = "auth-change";
 
 interface AuthContextType {
     user: AuthDto | null;
@@ -14,6 +23,73 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/** Snapshot primitive — must stay referentially stable when data is unchanged. */
+function getUserSnapshot(): string | null {
+    if (typeof window === "undefined") return null;
+
+    const savedUser = localStorage.getItem(USER_DATA_KEY);
+    const token = Cookies.get("token");
+
+    if (!savedUser || !token) return null;
+
+    return savedUser;
+}
+
+function parseUserSnapshot(snapshot: string | null): AuthDto | null {
+    if (!snapshot) return null;
+
+    try {
+        return JSON.parse(snapshot) as AuthDto;
+    } catch {
+        return null;
+    }
+}
+
+function persistUser(user: AuthDto | null) {
+    if (user) {
+        const userJson = JSON.stringify(user);
+        localStorage.setItem(USER_DATA_KEY, userJson);
+        Cookies.set(USER_DATA_KEY, userJson, {
+            expires: 7,
+            sameSite: "lax",
+        });
+        if (user.jwtToken) {
+            Cookies.set("token", user.jwtToken, {
+                expires: 7,
+                sameSite: "lax",
+            });
+        }
+    } else {
+        localStorage.removeItem(USER_DATA_KEY);
+        Cookies.remove(USER_DATA_KEY);
+        Cookies.remove("token");
+    }
+}
+
+function subscribeToAuth(onStoreChange: () => void) {
+    const handleStorage = (e: StorageEvent) => {
+        if (e.key === USER_DATA_KEY || e.key === null) {
+            onStoreChange();
+        }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(AUTH_CHANGE_EVENT, onStoreChange);
+
+    return () => {
+        window.removeEventListener("storage", handleStorage);
+        window.removeEventListener(AUTH_CHANGE_EVENT, onStoreChange);
+    };
+}
+
+function notifyAuthChange() {
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+}
+
+function subscribeNoop() {
+    return () => {};
+}
+
 export default function AuthProvider({
     initialUser,
     children,
@@ -21,99 +97,61 @@ export default function AuthProvider({
     initialUser: AuthDto | null;
     children: React.ReactNode;
 }) {
-    const [{ user, isLoading }, setAuthState] = useState<{
-        user: AuthDto | null;
-        isLoading: boolean;
-    }>(() => {
-        if (typeof window !== "undefined") {
-            const savedUser = localStorage.getItem("user_data");
-            const token = Cookies.get("token");
+    const serverUserSnapshot = useMemo(
+        () => (initialUser ? JSON.stringify(initialUser) : null),
+        [initialUser]
+    );
 
-            if (savedUser && token) {
-                try {
-                    return {
-                        user: JSON.parse(savedUser),
-                        isLoading: false,
-                    };
-                } catch {
-                    return {
-                        user: initialUser,
-                        isLoading: false,
-                    };
-                }
-            }
-        }
+    const userSnapshot = useSyncExternalStore(
+        subscribeToAuth,
+        getUserSnapshot,
+        () => serverUserSnapshot
+    );
 
-        return {
-            user: initialUser,
-            isLoading: false,
-        };
-    });
+    const user = useMemo(
+        () => parseUserSnapshot(userSnapshot),
+        [userSnapshot]
+    );
 
-    const login = (userData: AuthDto) => {
+    const isHydrated = useSyncExternalStore(
+        subscribeNoop,
+        () => true,
+        () => false
+    );
+
+    const login = useCallback((userData: AuthDto) => {
         if (!userData.jwtToken) return;
+        persistUser(userData);
+        notifyAuthChange();
+    }, []);
 
-        setAuthState({
-            user: userData,
-            isLoading: false,
-        });
-
-        Cookies.set("token", userData.jwtToken, {
-            expires: 7,
-            sameSite: "lax",
-        });
-
-        localStorage.setItem(
-            "user_data",
-            JSON.stringify(userData)
-        );
-    };
-
-    const logout = () => {
-        setAuthState({
-            user: null,
-            isLoading: false,
-        });
-
-        Cookies.remove("token");
-        localStorage.removeItem("user_data");
-
+    const logout = useCallback(() => {
+        persistUser(null);
+        notifyAuthChange();
         window.location.href = "/";
-    };
+    }, []);
 
-    const updateUser = (
-        updatedData: Partial<AuthDto>
-    ) => {
-        setAuthState((prev) => {
-            if (!prev.user) return prev;
+    const updateUser = useCallback((updatedData: Partial<AuthDto>) => {
+        const current = parseUserSnapshot(getUserSnapshot());
+        if (!current) return;
 
-            const newUser = {
-                ...prev.user,
-                ...updatedData,
-            };
+        persistUser({ ...current, ...updatedData });
+        notifyAuthChange();
+    }, []);
 
-            localStorage.setItem(
-                "user_data",
-                JSON.stringify(newUser)
-            );
-
-            return {
-                ...prev,
-                user: newUser,
-            };
-        });
-    };
+    const value = useMemo(
+        () => ({
+            user,
+            login,
+            logout,
+            updateUser,
+            isLoading: !isHydrated,
+        }),
+        [user, login, logout, updateUser, isHydrated]
+    );
 
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                login,
-                logout,
-                updateUser,
-                isLoading,
-            }}
-        >
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );
