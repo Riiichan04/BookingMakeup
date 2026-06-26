@@ -2,7 +2,8 @@ export type BookingStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
 
 export interface CreateBookingRequest {
   serviceId: string;
-  artistId: string;
+  ownerId: string;
+  //TODO: Add artistId here if need
   bookingDate: string;
   startTime: string;
   promoCode?: string;

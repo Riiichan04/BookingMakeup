@@ -53,4 +53,7 @@ export interface ServiceDetailResponse {
     ownerAvatar: string | null;
     relatedServices: ServiceSimpleDto[];
     mainThumbnailUrl: string;
+    rating: number;
+    reviewCount: number;
+    address: string;
 }

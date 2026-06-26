@@ -1,5 +1,5 @@
 export interface MakeupService {
-  id: number;
+  // id: number;
   serviceUuid: string;   // UUID thực dùng khi tạo booking
   artistUuid: string;    // UUID artist thực dùng khi tạo booking
   title: string;
