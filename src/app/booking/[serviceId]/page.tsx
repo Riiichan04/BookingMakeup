@@ -183,12 +183,12 @@ export default function BookingPage() {
           artistName: res.ownerName || "",
           artistInitials: res.ownerName ? res.ownerName.charAt(0).toUpperCase() : "A",
           artistColor: "#ec4899",
-          rating: res.rating || 0,          
-          reviewCount: res.reviewCount || 0, 
+          rating: res.rating || 0,
+          reviewCount: res.reviewCount || 0,
           priceFrom: res.price,
           duration: res.duration,
           imageUrl: res.mainThumbnailUrl || "",
-          location: res.address || "",      
+          location: res.address || "",
           description: res.description || ""
         });
       }
@@ -237,13 +237,61 @@ export default function BookingPage() {
   const depositAmount = Math.round(basePrice * 0.55);
 
   // Submit booking & Payment
+  // const handleSubmit = async () => {
+  //   if (!selectedDate || !selectedTime) {
+  //     setError("Vui lòng chọn ngày và giờ.");
+  //     return;
+  //   }
+
+  //   // Kiểm tra đăng nhập
+  //   const raw = typeof window !== "undefined" ? localStorage.getItem("user_data") : null;
+  //   if (!raw) {
+  //     router.push("/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search));
+  //     return;
+  //   }
+
+  //   setLoading(true);
+  //   setError(null);
+  //   try {
+  //     const booking = await createBooking({
+  //       serviceId,
+  //       ownerId: artistId, //TODO: Fix this to real artist in service or keep using service owner
+  //       bookingDate: selectedDate,
+  //       startTime: selectedTime,
+  //       promoCode: promoCode.trim() || undefined,
+  //     });
+
+  //     setPaymentRedirecting(true);
+  //     const payRes = await generatePaymentUrl(booking.id);
+
+  //     if (payRes.code === "00" && payRes.data) {
+  //       // 3. ĐÁ KHÁCH SANG TRANG VNPAY NGAY VÀ LUÔN!
+  //       window.location.href = payRes.data;
+  //     } else {
+  //       setError(payRes.message || "Lỗi tạo link thanh toán. Vui lòng thử lại.");
+  //       setLoading(false);
+  //       setPaymentRedirecting(false);
+  //     }
+  //   } catch (e: unknown) {
+  //     const msg = (e as { response?: { data?: string } })?.response?.data ?? "Đặt lịch thất bại. Vui lòng thử lại.";
+  //     console.log(e)
+  //     setError(typeof msg === "string" ? msg : "Đặt lịch thất bại.");
+  //     setLoading(false);
+  //     setPaymentRedirecting(false);
+  //   }
+  // };
+
   const handleSubmit = async () => {
+    if (!serviceId || !artistId) {
+      setError("Thiếu thông tin Dịch vụ hoặc Chuyên viên. Vui lòng quay lại trang Dịch vụ.");
+      return;
+    }
+
     if (!selectedDate || !selectedTime) {
       setError("Vui lòng chọn ngày và giờ.");
       return;
     }
 
-    // Kiểm tra đăng nhập
     const raw = typeof window !== "undefined" ? localStorage.getItem("user_data") : null;
     if (!raw) {
       router.push("/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search));
@@ -255,27 +303,38 @@ export default function BookingPage() {
     try {
       const booking = await createBooking({
         serviceId,
-        ownerId: artistId, //TODO: Fix this to real artist in service or keep using service owner
+        ownerId: artistId,
         bookingDate: selectedDate,
         startTime: selectedTime,
         promoCode: promoCode.trim() || undefined,
       });
 
-      setPaymentRedirecting(true);
       const payRes = await generatePaymentUrl(booking.id);
 
-      if (payRes.code === "00" && payRes.data) {
-        // 3. ĐÁ KHÁCH SANG TRANG VNPAY NGAY VÀ LUÔN!
-        window.location.href = payRes.data;
+      if (payRes.actionUrl && payRes.fields) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = payRes.actionUrl;
+
+        Object.keys(payRes.fields).forEach((key) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = payRes.fields[key];
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
       } else {
-        setError(payRes.message || "Lỗi tạo link thanh toán. Vui lòng thử lại.");
+        setError("Lỗi tạo thông tin thanh toán. Vui lòng thử lại.");
         setLoading(false);
         setPaymentRedirecting(false);
       }
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: string } })?.response?.data ?? "Đặt lịch thất bại. Vui lòng thử lại.";
-      console.log(e)
-      setError(typeof msg === "string" ? msg : "Đặt lịch thất bại.");
+      const msg = (e as { response?: { data?: string | { message?: string } } })?.response?.data;
+      const errorText = typeof msg === "string" ? msg : (msg?.message ?? "Đặt lịch thất bại. Vui lòng thử lại.");
+      setError(errorText);
       setLoading(false);
       setPaymentRedirecting(false);
     }

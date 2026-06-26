@@ -3,3 +3,8 @@ export interface PaymentGenerateResponse {
     message: string;
     data: string;
 }
+
+export interface SePayGenerateResponse {
+    actionUrl: string;
+    fields: Record<string, string>;
+}
