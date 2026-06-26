@@ -7,7 +7,8 @@ import {
 } from "@/types/promotion";
 import apiClient from "./client";
 
-// Lấy danh sách promotions (có thể lọc theo ownerId)
+// Lấy danh sách promotions
+// Admin: owner_id = null (hệ thống) | Service Owner: owner_id = userId hiện tại
 export async function getPromotions(ownerId?: string): Promise<PromotionDto[]> {
   const { data } = await apiClient.get<PromotionDto[]>("/promotions", {
     params: ownerId ? { ownerId } : undefined,
