@@ -135,11 +135,13 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                                         <div className="text-right shrink-0">
                                             <p className="text-xs text-gray-400">Giá từ</p>
                                             <p className="font-bold text-[#E4187D] text-xl mb-2">{Math.round(svc.price * SERVICE_DEPOSITE_AMOUNT).toLocaleString('vi-VN')}đ</p>
-                                            <Link href={`/booking/${svc.id}`}>
-                                                <Button size="sm" className="cursor-pointer h-7 bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full p-4 w-full">
-                                                    Đặt lịch
-                                                </Button>
-                                            </Link>
+                                            <Button
+                                                size="sm"
+                                                className="cursor-pointer h-7 bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full p-4 w-full"
+                                                onClick={() => router.push(`/booking/${svc.id}`)}
+                                            >
+                                                Đặt lịch
+                                            </Button>
                                         </div>
                                     </div>
                                 </Link>
