@@ -103,7 +103,24 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                             <div className="flex flex-wrap gap-3">
                                 {/* <Button className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8">Đặt lịch ngay</Button> */}
                                 {/* <Button variant="outline" className="border-pink-200 text-[#E4187D] hover:bg-pink-50 rounded-full px-8">Liên hệ</Button> */}
-                                <Button className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8">Liên hệ</Button>
+                                <Button
+                                    onClick={() => {
+                                        if (!user) {
+                                            router.push(`/login`);
+                                            return;
+                                        }
+                                        const query = new URLSearchParams({
+                                            userId: data.ownerId,
+                                            name: data.displayName,
+                                            avatar: data.avatarUrl || ''
+                                        }).toString();
+
+                                        router.push(`/chat?${query}`);
+                                    }}
+                                    className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8"
+                                >
+                                    Liên hệ
+                                </Button>
                                 <Button variant="outline" className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-full px-4">
                                     <Heart className="w-4 h-4 mr-2" /> Theo dõi
                                 </Button>
