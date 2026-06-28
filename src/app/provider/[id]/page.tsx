@@ -2,7 +2,6 @@
 
 import { useEffect, useState, use } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Star, MapPin, CheckCircle2, Heart, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/header";
@@ -141,27 +140,33 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                         </div>
                         <div className="grid grid-cols-1 gap-4">
                             {data.services?.map((svc) => (
-                                <Link key={svc.id} href={`/services/${svc.id}`}>
-                                    <div
-                                        className="flex justify-between items-center border border-gray-50 bg-gray-100/70 p-4 rounded-2xl hover:bg-gray-100/40 cursor-pointer"
-                                    >
-                                        <div className="flex-1 pr-4">
-                                            <h3 className="font-bold text-lg text-gray-900 line-clamp-2">{svc.name}</h3>
-                                            <p className="text-xs text-gray-500 mt-1">⏱ {svc.duration} phút</p>
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                            <p className="text-xs text-gray-400">Giá từ</p>
-                                            <p className="font-bold text-[#E4187D] text-xl mb-2">{Math.round(svc.price * SERVICE_DEPOSITE_AMOUNT).toLocaleString('vi-VN')}đ</p>
+                                <div key={svc.id}
+                                    className="flex justify-between items-center border border-gray-50 bg-gray-100/70 p-4 rounded-2xl hover:bg-gray-100/40"
+                                >
+                                    <div className="flex-1 pr-4">
+                                        <h3 className="font-bold text-lg text-gray-900 line-clamp-2">{svc.name}</h3>
+                                        <p className="text-xs text-gray-500 mt-1">⏱ {svc.duration} phút</p>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                        <p className="text-xs text-gray-400">Giá từ</p>
+                                        <p className="font-bold text-[#E4187D] text-xl mb-2">{Math.round(svc.price * SERVICE_DEPOSITE_AMOUNT).toLocaleString('vi-VN')}đ</p>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm" className="cursor-pointer h-7 bg-white border-[#E4187D] text-[#E4187D] hover:bg-pink-50 rounded-full p-4 w-fit"
+                                                onClick={() => router.push(`/services/${svc.id}`)}
+                                            >
+                                                Xem chi tiết
+                                            </Button>
                                             <Button
                                                 size="sm"
-                                                className="cursor-pointer h-7 bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full p-4 w-full"
+                                                className="cursor-pointer h-7 bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full p-4 w-fit"
                                                 onClick={() => router.push(`/booking/${svc.id}`)}
                                             >
                                                 Đặt lịch
                                             </Button>
                                         </div>
                                     </div>
-                                </Link>
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -186,7 +191,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                                         <p className="text-xs text-gray-500 line-clamp-1 mb-2">Chuyên: {art.specialty}</p>
                                         {user &&
                                             <Button
-                                                size="sm" className="h-6 text-xs bg-pink-50 text-[#E4187D] hover:bg-pink-100 rounded-full px-3 w-full"
+                                                size="sm" className="cursor-pointer h-6 text-xs bg-white border-[#E4187D] text-[#E4187D] hover:bg-pink-50 rounded-full p-2 w-fit"
                                                 onClick={() => router.push(`/artists/${art.id}`)}
                                             >
                                                 Xem hồ sơ
