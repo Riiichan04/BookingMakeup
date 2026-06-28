@@ -2,19 +2,19 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { 
-  Heart, 
-  Search, 
-  Calendar, 
-  Clock, 
-  Tag, 
-  Star, 
-  MapPin, 
-  AlertCircle, 
-  CheckCircle2, 
-  Loader2, 
-  PlusCircle, 
-  MessageSquare 
+import {
+  Heart,
+  Search,
+  Calendar,
+  Clock,
+  Star,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  MessageSquare,
+  CreditCard,
+  XCircle,
+  Tag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,28 +22,27 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-import { 
-  getAllServices, 
-  getFavourites, 
-  addFavourite, 
-  removeFavourite, 
-  isFavourite 
+import {
+  getAllServices,
+  getFavourites,
+  addFavourite,
+  removeFavourite,
 } from "@/lib/api";
-import { createBooking, getMyBookings } from "@/lib/api/booking";
+import { createBooking, getMyBookings, updateBookingStatus } from "@/lib/api/booking";
 import { validatePromotion } from "@/lib/api/promotions";
 import { createReview, getReviewsByService } from "@/lib/api/reviews";
+import { generatePaymentUrl } from "@/services/payment-service";
 
 import { ServiceDto } from "@/types/service";
 import { BookingDto } from "@/types/booking";
 import { CommentTag, ReviewDto } from "@/types/review";
-import { defaultAvatar } from "@/common/constant/default-avatar";
 
 export default function CustomerDashboard() {
   const [activeTab, setActiveTab] = useState<"explorer" | "favourites" | "bookings">("explorer");
   const [services, setServices] = useState<ServiceDto[]>([]);
   const [favourites, setFavourites] = useState<ServiceDto[]>([]);
   const [bookings, setBookings] = useState<BookingDto[]>([]);
-  
+
   const [favStatusMap, setFavStatusMap] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,6 +65,12 @@ export default function CustomerDashboard() {
   const [serviceReviews, setServiceReviews] = useState<ReviewDto[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
+  // Payment State
+  const [payingBookingId, setPayingBookingId] = useState<string | null>(null);
+
+  // Cancel Booking State
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+
   // Review Modal State
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingDto | null>(null);
@@ -85,14 +90,11 @@ export default function CustomerDashboard() {
       const allSvcs = await getAllServices();
       setServices(allSvcs);
 
-      // Check fav status
       const favList = await getFavourites();
       setFavourites(favList);
-      
+
       const favMap: Record<string, boolean> = {};
-      favList.forEach(item => {
-        favMap[item.id] = true;
-      });
+      favList.forEach(item => { favMap[item.id] = true; });
       setFavStatusMap(favMap);
 
       const bookingList = await getMyBookings();
@@ -116,7 +118,6 @@ export default function CustomerDashboard() {
         toast.success("Đã thêm vào danh sách yêu thích");
         setFavStatusMap(prev => ({ ...prev, [serviceId]: true }));
       }
-      // Reload favourites list
       const favList = await getFavourites();
       setFavourites(favList);
     } catch {
@@ -174,20 +175,72 @@ export default function CustomerDashboard() {
     try {
       await createBooking({
         serviceId: selectedService.id,
-        artistId: selectedService.ownerId, // artistId matches SO ownerId
+        ownerId: selectedService.ownerId,
         bookingDate,
         startTime: bookingTime.includes(":") ? (bookingTime.split(":").length === 2 ? `${bookingTime}:00` : bookingTime) : `${bookingTime}:00:00`,
         promoCode: couponCode.trim() || undefined
       });
-      toast.success("Đặt lịch thành công! Chờ Service Owner xác nhận.");
+      toast.success("Đặt lịch thành công! Chờ Studio xác nhận để thanh toán.");
       setBookingModalOpen(false);
-      // Reload bookings
       const bookingList = await getMyBookings();
       setBookings(bookingList);
-    } catch (e: any) {
-      toast.error(e.response?.data || "Đặt lịch thất bại");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: string | { message?: string } } })?.response?.data;
+      const errorText = typeof msg === "string" ? msg : (msg?.message ?? "Đặt lịch thất bại");
+      toast.error(errorText);
     } finally {
       setSubmittingBooking(false);
+    }
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!confirm("Bạn có chắc chắn muốn hủy lịch hẹn này? Số điểm đã dùng (nếu có) sẽ được hoàn lại.")) {
+      return;
+    }
+
+    setCancellingBookingId(bookingId);
+    try {
+      await updateBookingStatus(bookingId, "CANCELLED");
+      toast.success("Đã hủy lịch hẹn thành công.");
+      const bookingList = await getMyBookings();
+      setBookings(bookingList);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: string | { message?: string } } })?.response?.data;
+      const errorText = typeof msg === "string" ? msg : (msg?.message ?? "Lỗi khi hủy lịch hẹn.");
+      toast.error(errorText);
+    } finally {
+      setCancellingBookingId(null);
+    }
+  };
+
+  const handlePayment = async (bookingId: string) => {
+    setPayingBookingId(bookingId);
+    try {
+      const payRes = await generatePaymentUrl(bookingId);
+      if (payRes.actionUrl && payRes.fields) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = payRes.actionUrl;
+
+        Object.keys(payRes.fields).forEach((key) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = payRes.fields[key];
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+      } else {
+        toast.error("Lỗi tạo thông tin thanh toán.");
+        setPayingBookingId(null);
+      }
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: string | { message?: string } } })?.response?.data;
+      const errorText = typeof msg === "string" ? msg : (msg?.message ?? "Lỗi khởi tạo thanh toán.");
+      toast.error(errorText);
+      setPayingBookingId(null);
     }
   };
 
@@ -213,11 +266,12 @@ export default function CustomerDashboard() {
       });
       toast.success("Gửi đánh giá thành công! Cảm ơn đóng góp của bạn.");
       setReviewModalOpen(false);
-      // Reload bookings to update reviewed status
       const bookingList = await getMyBookings();
       setBookings(bookingList);
-    } catch (e: any) {
-      toast.error(e.response?.data || "Không thể gửi đánh giá");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: string | { message?: string } } })?.response?.data;
+      const errorText = typeof msg === "string" ? msg : (msg?.message ?? "Không thể gửi đánh giá");
+      toast.error(errorText);
     } finally {
       setSubmittingReview(false);
     }
@@ -228,13 +282,31 @@ export default function CustomerDashboard() {
   };
 
   const filteredServices = services.filter(svc => {
-    const matchesSearch = svc.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          svc.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = svc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      svc.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "all" || svc.category.toLowerCase() === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 
   const categories = Array.from(new Set(services.map(s => s.category)));
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-none">Chờ Xác Nhận</Badge>;
+      case "CONFIRMED":
+        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none">Đã Xác Nhận (Chờ Cọc)</Badge>;
+      case "PAID":
+        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">Đã Thanh Toán</Badge>;
+      case "COMPLETED":
+        return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-none">Hoàn Thành</Badge>;
+      case "REJECTED":
+      case "CANCELLED":
+        return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-none">{status === "REJECTED" ? "Bị Từ Chối" : "Đã Hủy"}</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -242,31 +314,28 @@ export default function CustomerDashboard() {
       <div className="flex gap-4 border-b border-gray-100 pb-2">
         <button
           onClick={() => setActiveTab("explorer")}
-          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${
-            activeTab === "explorer" 
-              ? "border-[#E4187D] text-[#E4187D]" 
-              : "border-transparent text-gray-500 hover:text-gray-900"
-          }`}
+          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${activeTab === "explorer"
+            ? "border-[#E4187D] text-[#E4187D]"
+            : "border-transparent text-gray-500 hover:text-gray-900"
+            }`}
         >
           Khám Phá Dịch Vụ
         </button>
         <button
           onClick={() => setActiveTab("favourites")}
-          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${
-            activeTab === "favourites" 
-              ? "border-[#E4187D] text-[#E4187D]" 
-              : "border-transparent text-gray-500 hover:text-gray-900"
-          }`}
+          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${activeTab === "favourites"
+            ? "border-[#E4187D] text-[#E4187D]"
+            : "border-transparent text-gray-500 hover:text-gray-900"
+            }`}
         >
           Danh Sách Yêu Thích ({favourites.length})
         </button>
         <button
           onClick={() => setActiveTab("bookings")}
-          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${
-            activeTab === "bookings" 
-              ? "border-[#E4187D] text-[#E4187D]" 
-              : "border-transparent text-gray-500 hover:text-gray-900"
-          }`}
+          className={`pb-2 px-1 font-semibold transition-all border-b-2 text-sm cursor-pointer ${activeTab === "bookings"
+            ? "border-[#E4187D] text-[#E4187D]"
+            : "border-transparent text-gray-500 hover:text-gray-900"
+            }`}
         >
           Lịch Hẹn Của Tôi ({bookings.length})
         </button>
@@ -282,7 +351,6 @@ export default function CustomerDashboard() {
           {/* TAB 1: SERVICES EXPLORER */}
           {activeTab === "explorer" && (
             <div className="space-y-6">
-              {/* Search & Category Filter */}
               <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
@@ -354,12 +422,12 @@ export default function CustomerDashboard() {
                       <CardContent className="p-4 pt-2">
                         <div className="flex justify-between text-xs text-gray-500 mt-2 border-t border-gray-50 pt-2">
                           <span>⏱ {svc.duration} Phút</span>
-                          <span>Chuyên viên giàu kinh nghiệm</span>
+                          <span>Chuyên viên kinh nghiệm</span>
                         </div>
                       </CardContent>
                       <CardFooter className="p-4 pt-0 flex justify-between items-center gap-3">
                         <span className="text-lg font-extrabold text-[#E4187D]">{formatPrice(svc.price)}</span>
-                        <Button 
+                        <Button
                           onClick={() => handleOpenBooking(svc)}
                           className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-6 font-semibold cursor-pointer"
                         >
@@ -390,22 +458,11 @@ export default function CustomerDashboard() {
                   {favourites.map(svc => (
                     <Card key={svc.id} className="overflow-hidden hover:shadow-md transition-shadow flex flex-col justify-between border-gray-100">
                       <div className="relative h-48 bg-gray-100">
-                        <Image
-                          src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600"
-                          alt={svc.name}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                        <button
-                          onClick={() => handleToggleFav(svc.id)}
-                          className="absolute top-3 right-3 p-2 bg-white/80 hover:bg-white rounded-full transition-colors cursor-pointer text-pink-600 shadow-sm"
-                        >
+                        <Image src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600" alt={svc.name} fill className="object-cover" unoptimized />
+                        <button onClick={() => handleToggleFav(svc.id)} className="absolute top-3 right-3 p-2 bg-white/80 hover:bg-white rounded-full transition-colors cursor-pointer text-pink-600 shadow-sm">
                           <Heart className="w-5 h-5 fill-pink-600 text-pink-600" />
                         </button>
-                        <Badge className="absolute bottom-3 left-3 bg-[#E4187D] text-white hover:bg-[#E4187D]">
-                          {svc.category}
-                        </Badge>
+                        <Badge className="absolute bottom-3 left-3 bg-[#E4187D] text-white hover:bg-[#E4187D]">{svc.category}</Badge>
                       </div>
                       <CardHeader className="p-4 pb-0">
                         <div className="flex justify-between items-start">
@@ -415,10 +472,7 @@ export default function CustomerDashboard() {
                       </CardHeader>
                       <CardFooter className="p-4 pt-4 flex justify-between items-center gap-3 border-t border-gray-50 mt-4">
                         <span className="text-lg font-extrabold text-[#E4187D]">{formatPrice(svc.price)}</span>
-                        <Button 
-                          onClick={() => handleOpenBooking(svc)}
-                          className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-6 font-semibold cursor-pointer"
-                        >
+                        <Button onClick={() => handleOpenBooking(svc)} className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-6 font-semibold cursor-pointer">
                           Đặt Lịch
                         </Button>
                       </CardFooter>
@@ -444,47 +498,64 @@ export default function CustomerDashboard() {
               ) : (
                 <div className="space-y-4">
                   {bookings.map(booking => (
-                    <div 
-                      key={booking.id} 
+                    <div
+                      key={booking.id}
                       className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
                     >
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-gray-900 text-lg">{booking.serviceName}</span>
-                          <Badge 
-                            variant={
-                              booking.status === "CONFIRMED" ? "default" : 
-                              booking.status === "COMPLETED" ? "secondary" : 
-                              booking.status === "CANCELLED" ? "destructive" : "outline"
-                            }
-                            className={
-                              booking.status === "CONFIRMED" ? "bg-green-100 text-green-700 hover:bg-green-100" :
-                              booking.status === "COMPLETED" ? "bg-blue-100 text-blue-700 hover:bg-blue-100" :
-                              booking.status === "CANCELLED" ? "bg-red-100 text-red-700 hover:bg-red-100" :
-                              "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
-                            }
-                          >
-                            {booking.status === "PENDING" ? "Chờ Xác Nhận" :
-                             booking.status === "CONFIRMED" ? "Đã Xác Nhận" :
-                             booking.status === "COMPLETED" ? "Đã Hoàn Thành" : "Đã Hủy"}
-                          </Badge>
+                          {getStatusBadge(booking.status)}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-sm text-gray-500">
-                          <p className="flex items-center gap-1.5"><Clock className="w-4 h-4 shrink-0 text-gray-400" /> Giờ: {booking.startTime.slice(0,5)} - {booking.endTime.slice(0,5)}</p>
+                          <p className="flex items-center gap-1.5"><Clock className="w-4 h-4 shrink-0 text-gray-400" /> Giờ: {booking.startTime.slice(0, 5)} - {booking.endTime.slice(0, 5)}</p>
                           <p className="flex items-center gap-1.5"><Calendar className="w-4 h-4 shrink-0 text-gray-400" /> Ngày: {booking.bookingDate.split("-").reverse().join("/")}</p>
                           <p className="flex items-center gap-1.5"><Star className="w-4 h-4 shrink-0 text-gray-400" /> Chuyên viên: {booking.artistName}</p>
                         </div>
-                        <div className="flex flex-wrap gap-4 text-xs text-gray-400 mt-1">
-                          <p>Tổng tiền: <span className="font-semibold text-gray-700">{formatPrice(booking.totalAmount)}</span></p>
-                          <p>Tiền cọc (55%): <span className="font-semibold text-pink-600">{formatPrice(booking.depositAmount)}</span></p>
+                        <div className="flex flex-wrap gap-4 text-xs mt-1">
+                          <p className="text-gray-500">Tổng tiền: <span className="font-semibold text-gray-700">{formatPrice(booking.totalAmount)}</span></p>
+                          <p className="text-gray-500">Tiền cọc (55%): <span className="font-semibold text-pink-600">{formatPrice(booking.depositAmount)}</span></p>
                         </div>
                       </div>
 
-                      <div className="flex gap-2 w-full md:w-auto self-end md:self-center shrink-0">
+                      <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto self-end md:self-center shrink-0">
+                        {/* NÚT HỦY LỊCH */}
+                        {(booking.status === "PENDING" || booking.status === "CONFIRMED") && (
+                          <Button
+                            onClick={() => handleCancelBooking(booking.id)}
+                            disabled={cancellingBookingId === booking.id || payingBookingId === booking.id}
+                            variant="outline"
+                            className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 rounded-full font-semibold text-xs py-2 w-full sm:w-auto cursor-pointer"
+                          >
+                            {cancellingBookingId === booking.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                            ) : (
+                              <XCircle className="w-4 h-4 mr-1.5" />
+                            )}
+                            Hủy Lịch
+                          </Button>
+                        )}
+
+                        {/* NÚT THANH TOÁN */}
+                        {booking.status === "CONFIRMED" && (
+                          <Button
+                            onClick={() => handlePayment(booking.id)}
+                            disabled={payingBookingId === booking.id || cancellingBookingId === booking.id}
+                            className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full font-semibold text-xs py-2 w-full sm:w-auto cursor-pointer shadow-sm"
+                          >
+                            {payingBookingId === booking.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                            ) : (
+                              <CreditCard className="w-4 h-4 mr-1.5" />
+                            )}
+                            Thanh Toán Cọc
+                          </Button>
+                        )}
+
                         {booking.status === "COMPLETED" && (
                           <Button
                             onClick={() => handleOpenReview(booking)}
-                            className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full font-semibold text-xs py-2 w-full md:w-auto cursor-pointer"
+                            className="bg-gray-900 hover:bg-gray-800 text-white rounded-full font-semibold text-xs py-2 w-full sm:w-auto cursor-pointer"
                           >
                             <MessageSquare className="w-4 h-4 mr-1.5" />
                             Đánh Giá Ngay
@@ -506,24 +577,13 @@ export default function CustomerDashboard() {
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-scale-up">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <h2 className="text-xl font-bold text-gray-900">Đặt Lịch Trang Điểm</h2>
-              <button 
-                onClick={() => setBookingModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 font-bold text-xl cursor-pointer"
-              >
-                &times;
-              </button>
+              <button onClick={() => setBookingModalOpen(false)} className="text-gray-400 hover:text-gray-600 font-bold text-xl cursor-pointer">&times;</button>
             </div>
 
             <div className="space-y-4">
               <div className="bg-pink-50/50 p-4 rounded-2xl flex gap-3 border border-pink-100/30">
                 <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0">
-                  <Image
-                    src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=200"
-                    alt={selectedService.name}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
+                  <Image src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=200" alt={selectedService.name} fill className="object-cover" unoptimized />
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 text-sm">{selectedService.name}</h3>
@@ -532,24 +592,14 @@ export default function CustomerDashboard() {
                 </div>
               </div>
 
-              {/* Date & Time Select */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Chọn ngày đặt</label>
-                  <Input
-                    type="date"
-                    min={new Date().toISOString().split("T")[0]}
-                    value={bookingDate}
-                    onChange={(e) => setBookingDate(e.target.value)}
-                  />
+                  <Input type="date" min={new Date().toISOString().split("T")[0]} value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Chọn giờ bắt đầu</label>
-                  <select
-                    className="w-full border border-gray-200 rounded-lg p-2 bg-white text-sm focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100"
-                    value={bookingTime}
-                    onChange={(e) => setBookingTime(e.target.value)}
-                  >
+                  <select className="w-full border border-gray-200 rounded-lg p-2 bg-white text-sm focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100" value={bookingTime} onChange={(e) => setBookingTime(e.target.value)}>
                     <option value="">-- Chọn Khung Giờ --</option>
                     {["07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00"].map(slot => (
                       <option key={slot} value={slot}>{slot}</option>
@@ -558,114 +608,42 @@ export default function CustomerDashboard() {
                 </div>
               </div>
 
-              {/* Coupon Code Input */}
               <div className="space-y-1 pt-2 border-t border-gray-50">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Mã giảm giá</label>
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="Nhập coupon code (nếu có)"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  />
-                  <Button 
-                    onClick={handleValidateCoupon}
-                    disabled={validatingCoupon || !couponCode.trim()}
-                    className="bg-[#E4187D]/10 hover:bg-[#E4187D]/20 text-[#E4187D] rounded-lg font-semibold border-none cursor-pointer"
-                  >
+                  <Input placeholder="Nhập coupon code" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} />
+                  <Button onClick={handleValidateCoupon} disabled={validatingCoupon || !couponCode.trim()} className="bg-[#E4187D]/10 hover:bg-[#E4187D]/20 text-[#E4187D] rounded-lg font-semibold border-none cursor-pointer">
                     {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Áp dụng"}
                   </Button>
                 </div>
                 {validationResult && (
                   <div className={`mt-2 p-2.5 rounded-lg text-xs flex items-center gap-1.5 ${validationResult.valid ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                     {validationResult.valid ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                        <span>Đã giảm {formatPrice(validationResult.discountAmount)}. Tổng mới: {formatPrice(validationResult.finalAmount)}</span>
-                      </>
+                      <><CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /><span>Đã giảm {formatPrice(validationResult.discountAmount)}. Tổng mới: {formatPrice(validationResult.finalAmount)}</span></>
                     ) : (
-                      <>
-                        <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-                        <span>{validationResult.errorMessage || "Mã giảm giá không hợp lệ"}</span>
-                      </>
+                      <><AlertCircle className="w-4 h-4 text-red-600 shrink-0" /><span>{validationResult.errorMessage || "Mã giảm giá không hợp lệ"}</span></>
                     )}
                   </div>
                 )}
               </div>
 
-              {/* Checkout Calculation summary */}
               <div className="border-t border-gray-100 pt-4 text-sm space-y-2 bg-gray-50/50 p-4 rounded-2xl">
-                <div className="flex justify-between text-gray-600">
-                  <span>Giá dịch vụ</span>
-                  <span>{formatPrice(selectedService.price)}</span>
-                </div>
-                {validationResult?.valid && (
-                  <div className="flex justify-between text-green-700">
-                    <span>Giảm giá (Coupon)</span>
-                    <span>-{formatPrice(validationResult.discountAmount)}</span>
-                  </div>
-                )}
+                <div className="flex justify-between text-gray-600"><span>Giá dịch vụ</span><span>{formatPrice(selectedService.price)}</span></div>
+                {validationResult?.valid && <div className="flex justify-between text-green-700"><span>Giảm giá (Coupon)</span><span>-{formatPrice(validationResult.discountAmount)}</span></div>}
                 <div className="flex justify-between font-bold text-gray-900 border-t border-dashed border-gray-200 pt-2 text-base">
-                  <span>Tổng thanh toán</span>
-                  <span>{formatPrice(validationResult?.valid ? validationResult.finalAmount : selectedService.price)}</span>
+                  <span>Tổng thanh toán</span><span>{formatPrice(validationResult?.valid ? validationResult.finalAmount : selectedService.price)}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-pink-600 bg-pink-50 p-2 rounded-lg text-xs mt-2">
-                  <span>Đặt cọc ngay (55%)</span>
-                  <span>{formatPrice((validationResult?.valid ? validationResult.finalAmount : selectedService.price) * 0.55)}</span>
+                  <span>Tiền cọc (55%)</span><span>{formatPrice((validationResult?.valid ? validationResult.finalAmount : selectedService.price) * 0.55)}</span>
                 </div>
-                <p className="text-[11px] text-gray-400 leading-tight">
-                  Số tiền cọc 55% sẽ được thanh toán sau khi Service Owner xác nhận lịch hẹn. 45% còn lại thanh toán tại Studio.
-                </p>
-              </div>
-
-              {/* Customer Reviews Section */}
-              <div className="border-t border-gray-100 pt-4 space-y-3">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                  <MessageSquare className="w-3.5 h-3.5 text-gray-400" /> Nhận xét từ khách hàng ({serviceReviews.length})
-                </h4>
-                
-                {loadingReviews ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#E4187D]" />
-                  </div>
-                ) : serviceReviews.length === 0 ? (
-                  <p className="text-xs text-gray-400 italic">Chưa có nhận xét nào cho dịch vụ này.</p>
-                ) : (
-                  <div className="space-y-3 max-h-[150px] overflow-y-auto pr-1">
-                    {serviceReviews.map(rev => (
-                      <div key={rev.id} className="bg-gray-50/50 border border-gray-100/50 p-3 rounded-xl space-y-1 text-xs">
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold text-gray-800">{rev.customer}</span>
-                          <div className="flex items-center text-yellow-500 font-bold">
-                            <Star className="w-3 h-3 fill-current mr-0.5" />
-                            <span>{rev.rating}</span>
-                          </div>
-                        </div>
-                        <p className="text-gray-600 italic leading-relaxed">&quot;{rev.comment}&quot;</p>
-                        <p className="text-[10px] text-gray-400 text-right">{rev.date}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <p className="text-[11px] text-gray-400 leading-tight">Sau khi Studio xác nhận đơn, bạn sẽ nhận được yêu cầu thanh toán cọc này.</p>
               </div>
             </div>
 
             <div className="flex gap-3 justify-end pt-3 border-t border-gray-100">
-              <Button variant="outline" className="rounded-full px-6" onClick={() => setBookingModalOpen(false)}>
-                Hủy bỏ
-              </Button>
-              <Button 
-                onClick={handleCreateBooking}
-                disabled={submittingBooking || !bookingDate || !bookingTime}
-                className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 font-semibold cursor-pointer"
-              >
-                {submittingBooking ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
-                    Đang xử lý...
-                  </>
-                ) : (
-                  "Xác Nhận Đặt"
-                )}
+              <Button variant="outline" className="rounded-full px-6" onClick={() => setBookingModalOpen(false)}>Hủy bỏ</Button>
+              <Button onClick={handleCreateBooking} disabled={submittingBooking || !bookingDate || !bookingTime} className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 font-semibold cursor-pointer">
+                {submittingBooking ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" />Đang xử lý...</> : "Xác Nhận Đặt"}
               </Button>
             </div>
           </div>
@@ -678,28 +656,18 @@ export default function CustomerDashboard() {
           <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-scale-up">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <h2 className="text-xl font-bold text-gray-900">Đánh Giá Dịch Vụ</h2>
-              <button 
-                onClick={() => setReviewModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 font-bold text-xl cursor-pointer"
-              >
-                &times;
-              </button>
+              <button onClick={() => setReviewModalOpen(false)} className="text-gray-400 hover:text-gray-600 font-bold text-xl cursor-pointer">&times;</button>
             </div>
 
             <div className="space-y-4">
               <p className="text-sm text-gray-500">Đánh giá của bạn giúp cải thiện chất lượng phục vụ cho những khách hàng tiếp theo.</p>
-              
-              {/* Ratings */}
+
               <div className="space-y-3">
                 <div className="flex justify-between items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100/30">
                   <span className="text-sm font-semibold text-gray-700">Độ hài lòng về layout trang điểm</span>
                   <div className="flex gap-1.5">
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => setBookingRating(star)}
-                        className="text-yellow-400 hover:scale-110 transition-transform cursor-pointer"
-                      >
+                      <button key={star} onClick={() => setBookingRating(star)} className="text-yellow-400 hover:scale-110 transition-transform cursor-pointer">
                         <Star className={`w-5 h-5 ${star <= bookingRating ? "fill-current" : ""}`} />
                       </button>
                     ))}
@@ -710,11 +678,7 @@ export default function CustomerDashboard() {
                   <span className="text-sm font-semibold text-gray-700">Thái độ của chuyên viên (Artist)</span>
                   <div className="flex gap-1.5">
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => setArtistRating(star)}
-                        className="text-yellow-400 hover:scale-110 transition-transform cursor-pointer"
-                      >
+                      <button key={star} onClick={() => setArtistRating(star)} className="text-yellow-400 hover:scale-110 transition-transform cursor-pointer">
                         <Star className={`w-5 h-5 ${star <= artistRating ? "fill-current" : ""}`} />
                       </button>
                     ))}
@@ -722,7 +686,6 @@ export default function CustomerDashboard() {
                 </div>
               </div>
 
-              {/* Tags */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Đặc điểm nổi bật</label>
                 <div className="flex flex-wrap gap-2">
@@ -733,50 +696,23 @@ export default function CustomerDashboard() {
                     { key: "BAD_SERVICE", label: "Dịch vụ chưa tốt" },
                     { key: "WORST_ATTITUDE", label: "Thái độ không thân thiện" }
                   ].map(tag => (
-                    <button
-                      key={tag.key}
-                      onClick={() => setReviewTag(tag.key as CommentTag)}
-                      className={`text-xs px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${
-                        reviewTag === tag.key 
-                          ? "bg-[#E4187D]/10 border-[#E4187D] text-[#E4187D] font-bold" 
-                          : "border-gray-200 text-gray-500 hover:bg-gray-50"
-                      }`}
-                    >
+                    <button key={tag.key} onClick={() => setReviewTag(tag.key as CommentTag)} className={`text-xs px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${reviewTag === tag.key ? "bg-[#E4187D]/10 border-[#E4187D] text-[#E4187D] font-bold" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
                       {tag.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Comments */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nhận xét chi tiết</label>
-                <textarea
-                  className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100 min-h-[90px]"
-                  placeholder="Chia sẻ trải nghiệm làm đẹp của bạn với mọi người..."
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                />
+                <textarea className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-100 min-h-[90px]" placeholder="Chia sẻ trải nghiệm làm đẹp của bạn..." value={comment} onChange={(e) => setComment(e.target.value)} />
               </div>
             </div>
 
             <div className="flex gap-3 justify-end pt-3 border-t border-gray-100">
-              <Button variant="outline" className="rounded-full px-6" onClick={() => setReviewModalOpen(false)}>
-                Hủy bỏ
-              </Button>
-              <Button 
-                onClick={handleSubmitReview}
-                disabled={submittingReview || !comment.trim()}
-                className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 font-semibold cursor-pointer"
-              >
-                {submittingReview ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
-                    Đang gửi...
-                  </>
-                ) : (
-                  "Gửi Đánh Giá"
-                )}
+              <Button variant="outline" className="rounded-full px-6" onClick={() => setReviewModalOpen(false)}>Hủy bỏ</Button>
+              <Button onClick={handleSubmitReview} disabled={submittingReview || !comment.trim()} className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 font-semibold cursor-pointer">
+                {submittingReview ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" />Đang gửi...</> : "Gửi Đánh Giá"}
               </Button>
             </div>
           </div>
