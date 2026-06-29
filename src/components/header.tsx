@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Bell, LogOut, Palette, Search, Settings, User } from "lucide-react";
+import { LogOut, Palette, Search, Settings, User } from "lucide-react";
+import NotificationBell from "@/components/notifications/notification-bell";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
 import {
@@ -68,9 +69,7 @@ export default function Header() {
             </div>
 
             <div className="flex items-center gap-4 text-gray-500 shrink-0">
-                <Button variant="ghost" size="icon" className="rounded-full hover:bg-gray-50 transition-colors">
-                    <Bell className="w-5 h-5" />
-                </Button>
+                <NotificationBell />
 
                 {isLoading ? (
                     <div className="h-9 w-9 rounded-full bg-gray-100 animate-pulse" aria-hidden />
