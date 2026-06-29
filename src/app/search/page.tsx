@@ -165,8 +165,8 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    doSearch(keyword, location, filters, sortBy, page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    doSearch(keyword, location, filters, sortBy, page);
   }, [filters, sortBy, page]);
 
   const handleSearch = () => { setPage(1); doSearch(keyword, location, filters, sortBy, 1); };
@@ -414,7 +414,7 @@ export default function SearchPage() {
                   gridTemplateColumns: "repeat(3, 1fr)",
                   gap: 20,
                 }}>
-                  {result.services.map(s => <ServiceCard key={s.id} service={s} />)}
+                  {result.services.map(s => <ServiceCard key={s.serviceUuid} service={s} />)}
                 </div>
 
                 {/* pagination */}

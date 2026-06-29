@@ -81,7 +81,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                             {data.avatarUrl ? (
                                 <Image src={data.avatarUrl} alt={data.displayName} fill className="object-cover" unoptimized />
                             ) : (
-                                <span className="text-3xl font-bold text-[#E4187D]">{data.displayName.charAt(0)}</span>
+                                <span className="text-3xl font-bold text-[#E4187D]">{data.displayName}</span>
                             )}
                         </div>
                         <div className="flex-1">
