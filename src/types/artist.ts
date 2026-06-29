@@ -25,15 +25,6 @@ export interface Booking {
   depositAmount: number;
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
 }
-export interface FeaturedArtistDto {
-    id: string;
-    displayName: string;
-    specialty: string;
-    rating: number;
-    reviewsCount?: number;
-    priceFrom?: number;
-    avatarUrl: string | null;
-}
 
 export interface ServiceSimpleDto {
     id: string;
@@ -58,4 +49,14 @@ export interface ServiceDetailResponse {
     rating: number;
     reviewCount: number;
     address: string;
+}
+
+export interface FeaturedArtistDto {
+    id: string;
+    displayName: string;
+    specialty: string;
+    rating: number;
+    reviewsCount?: number;
+    priceFrom?: number;
+    avatarUrl: string | null;
 }

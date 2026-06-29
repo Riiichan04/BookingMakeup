@@ -10,7 +10,6 @@ export interface ProviderProfileResponse {
     bio: string;
     averageRating: number;
     totalReviews: number;
-    totalCustomers: number;
     artists: FeaturedArtistDto[];
     services: ServiceSimpleDto[];
 }
