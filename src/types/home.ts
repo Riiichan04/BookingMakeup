@@ -35,6 +35,13 @@ export interface ReviewDto {
     createdAt: string;
 }
 
+export interface HomeProvider {
+    id: string;
+    displayName: string;
+    priceFrom: number;
+    avatarUrl: string | null;
+}
+
 export interface HomeArtist {
     id: string;
     displayName: string;
@@ -56,6 +63,7 @@ export interface HomePromotion {
 
 
 export interface HomeDataResponse {
+    featuredProviders: HomeProvider[]
     featuredArtists: HomeArtist[];
     promotions: HomePromotion[];
 }

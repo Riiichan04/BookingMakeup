@@ -10,7 +10,7 @@ import { Star, MapPin, Search, CalendarHeart, Sparkles, ArrowRight, Gem, Graduat
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
-import { HomeArtist, HomePromotion } from "@/types/home";
+import { HomeArtist, HomePromotion, HomeProvider } from "@/types/home";
 import { defaultAvatar } from "@/common/constant/default-avatar";
 import { getHomeData } from "@/services/home-service";
 import { Category } from "@/common/constant/category";
@@ -28,6 +28,7 @@ export default function HomePage() {
     const [keyword, setKeyword] = useState("");
     const [location, setLocation] = useState("");
 
+    const [featuredProviders, setFeaturedProviders] = useState<HomeProvider[]>([]);
     const [featuredArtists, setFeaturedArtists] = useState<HomeArtist[]>([]);
     const [promotions, setPromotions] = useState<HomePromotion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +37,7 @@ export default function HomePage() {
         const fetchHomeData = async () => {
             setIsLoading(true);
             const data = await getHomeData();
+            setFeaturedProviders(data.featuredProviders);
             setFeaturedArtists(data.featuredArtists);
             setPromotions(data.promotions);
             setIsLoading(false);
@@ -110,12 +112,55 @@ export default function HomePage() {
             <section className="py-16 px-4 md:px-8 max-w-7xl mx-auto w-full">
                 <div className="flex justify-between items-end mb-8">
                     <div>
+                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Nhà cung cấp Dịch vụ trang điểm nổi bật</h2>
+                        <p className="text-gray-500 text-sm">Những nhà cung cấp dịch vụ được đánh giá cao nhất</p>
+                    </div>
+                    {/* <Link href="/artists" className="text-[#E4187D] font-semibold text-sm hover:underline hidden sm:block">
+                        Xem tất cả
+                    </Link> */}
+                </div>
+
+                {isLoading ? (
+                    <div className="flex justify-center py-10"><span className="text-gray-400 animate-pulse">Đang tải dữ liệu...</span></div>
+                ) : featuredArtists.length === 0 ? (
+                    <div className="text-center text-gray-500 py-10">Hiện chưa có Artist nổi bật nào.</div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {featuredProviders.map((provider) => (
+                            <Link href={`/provider/${provider.id}`} key={provider.id}>
+                                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group cursor-pointer h-full flex flex-col">
+                                    <div className="relative w-full h-48 rounded-xl overflow-hidden mb-4">
+                                        <Image
+                                            src={provider.avatarUrl || defaultAvatar}
+                                            alt={provider.displayName}
+                                            fill
+                                            unoptimized
+                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                        />
+                                    </div>
+                                    <h3 className="font-bold text-lg text-gray-900 truncate">{provider.displayName}</h3>
+
+                                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+                                        <span className="text-[#E4187D] font-bold text-sm">
+                                            {provider.priceFrom > 0 ? `Từ ${provider.priceFrom.toLocaleString('vi-VN')}đ` : 'Liên hệ'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </section>
+
+            <section className="py-16 px-4 md:px-8 max-w-7xl mx-auto w-full">
+                <div className="flex justify-between items-end mb-8">
+                    <div>
                         <h2 className="text-3xl font-bold text-gray-900 mb-2">Artist Nổi Bật Tuần Này</h2>
                         <p className="text-gray-500 text-sm">Những chuyên viên được khách hàng đánh giá cao nhất.</p>
                     </div>
-                    <Link href="/artists" className="text-[#E4187D] font-semibold text-sm hover:underline hidden sm:block">
+                    {/* <Link href="/artists" className="text-[#E4187D] font-semibold text-sm hover:underline hidden sm:block">
                         Xem tất cả
-                    </Link>
+                    </Link> */}
                 </div>
 
                 {isLoading ? (

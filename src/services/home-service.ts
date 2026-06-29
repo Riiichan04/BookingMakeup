@@ -1,27 +1,15 @@
 import { apiUrl } from "@/common/constant/api-url";
 import { HomeDataResponse } from "@/types/home";
+import axios from "axios";
 
 export const getHomeData = async (): Promise<HomeDataResponse> => {
     try {
-        const res = await fetch(`${apiUrl}/home/data`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
+        const res = await axios.get<HomeDataResponse>(`${apiUrl}/home/data`);
 
-        if (!res.ok) {
-            throw new Error(`Failed to fetch home data: ${res.status}`);
-        }
-
-        const data = await res.json();
-
-        return {
-            featuredArtists: data.featuredArtists || [],
-            promotions: data.promotions || [],
-        };
+        return res.data;
     } catch {
         return {
+            featuredProviders: [],
             featuredArtists: [],
             promotions: [],
         };
