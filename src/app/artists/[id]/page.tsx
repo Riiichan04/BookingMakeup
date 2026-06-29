@@ -3,38 +3,38 @@
 import { useEffect, useState, use } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Star, MapPin, CheckCircle2, Heart, Loader2, ArrowLeft, Calendar, ShieldCheck, Users, MessageSquare, Edit } from "lucide-react";
+import { 
+    Star, MapPin, CheckCircle2, Heart, Loader2, ArrowLeft, 
+    Calendar, ShieldCheck, Users, MessageSquare, Edit, Briefcase, Scissors, Clock 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { Artist, Booking } from "@/types/artist";
-import { artistService } from "@/services/artist-service";
+import { Artist, Booking, ServiceSimpleDto } from "@/types/artist"; 
+import { artistService, getProviderProfile } from "@/services/artist-service"; 
 import { defaultAvatar } from "@/common/constant/default-avatar";
 import BookingTable from "@/components/artists/BookingTable";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
-import { Briefcase } from "lucide-react";
 
 export default function ArtistDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const router = useRouter();
-    const { user } = useAuth(); // Lấy thông tin user hiện tại
+    const { user } = useAuth(); 
 
     const [artist, setArtist] = useState<Artist | null>(null);
     const [schedule, setSchedule] = useState<Booking[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [providerServices, setProviderServices] = useState<ServiceSimpleDto[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
     
-    // Quản lý trạng thái Follow
-    const [isFollowing, setIsFollowing] = useState(false);
-    const [isFollowLoading, setIsFollowLoading] = useState(false);
-
-    // THÊM STATE QUẢN LÝ QUYỀN SỞ HỮU (Mặc định là Khách)
-    const [isOwner, setIsOwner] = useState(false);
+    const [isFollowing, setIsFollowing] = useState<boolean>(false);
+    const [isFollowLoading, setIsFollowLoading] = useState<boolean>(false);
+    const [isOwner, setIsOwner] = useState<boolean>(false);
 
     useEffect(() => {
         const loadArtistData = async () => {
             try {
-                // 1. Gọi API lấy thông tin thợ và lịch
+                // 1. Lấy thông tin Artist và Lịch
                 const [artistData, bookingsData] = await Promise.all([
                     artistService.getArtistById(resolvedParams.id),
                     artistService.getArtistBookings(resolvedParams.id).catch(() => [])
@@ -46,52 +46,56 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                     b.status === 'PENDING' || b.status === 'CONFIRMED'
                 );
                 setSchedule(activeBookings);
+
+                // 2. Kéo danh sách dịch vụ của Chủ Tiệm (KHÔNG DÙNG ANY)
+                if (artistData.ownerId) {
+                    try {
+                        const profile = await getProviderProfile(artistData.ownerId);
+                        // TS giờ đã hiểu profile có thể chứa services
+                        if (profile?.services && profile.services.length > 0) {
+                            setProviderServices(profile.services);
+                        }
+                    } catch (e: unknown) {
+                        if (e instanceof Error) {
+                            console.error("Lỗi lấy danh sách dịch vụ của SO:", e.message);
+                        }
+                    }
+                }
+
+                // 3. Phân quyền và trạng thái Follow
                 if (user) {
                     try {
                         const myArtists = await artistService.getMyArtists();
                         const ownsThisArtist = myArtists.some(a => a.id === resolvedParams.id);
                         setIsOwner(ownsThisArtist);
-                    } catch (error) {
+                    } catch (error: unknown) {
                         setIsOwner(false);
                     }
                     
-                  
                     try {
                         const followStatus = await artistService.checkFollowStatus(resolvedParams.id);
                         setIsFollowing(followStatus);
-                    } catch (error) {
-                        console.error("Lỗi lấy trạng thái follow:", error);
+                    } catch (error: unknown) {
+                        if (error instanceof Error) {
+                            console.error("Lỗi lấy trạng thái follow:", error.message);
+                        }
                     }
                 }
 
-                // 2. KIỂM TRA QUYỀN SỞ HỮU (Chỉ chạy khi có user đăng nhập)
-                if (user) {
-                    try {
-                        // Gọi API lấy danh sách thợ của SO đang đăng nhập
-                        const myArtists = await artistService.getMyArtists();
-                        
-                        // Kiểm tra xem ID của trang hiện tại có nằm trong danh sách thợ của mình không
-                        const ownsThisArtist = myArtists.some(a => a.id === resolvedParams.id);
-                        setIsOwner(ownsThisArtist);
-                    } catch (error) {
-                        // Nếu là Customer gọi API này bị 403 (cấm) thì không sao cả, cứ để isOwner = false
-                        setIsOwner(false);
-                    }
-                    
-                    // TODO: Gọi API kiểm tra xem user này đã follow artist chưa (nếu cần)
-                    // const followStatus = await artistService.checkFollowStatus(resolvedParams.id);
-                    // setIsFollowing(followStatus);
+            } catch (error: unknown) {
+                if (error instanceof Error) {
+                    console.error("Lỗi khi tải dữ liệu artist:", error.message);
                 }
-
-            } catch (error) {
-                console.error("Lỗi khi tải dữ liệu artist:", error);
                 setArtist(null);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        if (resolvedParams.id) loadArtistData();
+        if (resolvedParams.id) {
+            // ESLint đôi khi bắt lỗi void promise trong useEffect, dùng catch để an toàn
+            loadArtistData().catch(console.error); 
+        }
     }, [resolvedParams.id, user]);
 
     const handleFollowToggle = async () => {
@@ -99,31 +103,31 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
             router.push('/login'); 
             return;
         }
-
         try {
             setIsFollowLoading(true);
-            
-            setIsFollowing(!isFollowing);
+            setIsFollowing(prev => !prev);
             setArtist(prev => prev ? {
                 ...prev,
-                followCount: isFollowing ? Math.max(0, (prev.followCount || 1) - 1) : (prev.followCount || 0) + 1
+                followCount: !isFollowing 
+                    ? (prev.followCount || 0) + 1 
+                    : Math.max(0, (prev.followCount || 1) - 1)
             } : prev);
-
+            
             await artistService.toggleFollow(resolvedParams.id);
-
-        } catch (error) {
-            console.error("Lỗi khi thay đổi trạng thái follow:", error);
-            setIsFollowing(!isFollowing); 
+        } catch (error: unknown) {
+            // Rollback state nếu API lỗi
+            setIsFollowing(prev => !prev); 
             setArtist(prev => prev ? {
                 ...prev,
-                followCount: isFollowing ? (prev.followCount || 0) + 1 : Math.max(0, (prev.followCount || 1) - 1)
+                followCount: isFollowing 
+                    ? (prev.followCount || 0) + 1 
+                    : Math.max(0, (prev.followCount || 1) - 1)
             } : prev);
         } finally {
             setIsFollowLoading(false);
         }
     };
 
-    // 1. Màn hình Loading
     if (isLoading) {
         return (
             <div className="bg-[#FFF5F8] min-h-screen flex flex-col font-sans pb-20">
@@ -137,7 +141,6 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
         );
     }
 
-    // 2. Màn hình Lỗi / Không tìm thấy
     if (!artist) {
         return (
             <div className="bg-[#FFF5F8] min-h-screen flex flex-col font-sans pb-20">
@@ -145,8 +148,7 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                 <main className="flex-1 flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
                     <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 max-w-md w-full">
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy Artist</h2>
-                        <p className="text-gray-500 mb-8">Hồ sơ này có thể không tồn tại, đã bị xóa, hoặc đã xảy ra lỗi kết nối.</p>
-                        <Button onClick={() => router.back()} className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 py-6 font-bold w-full">
+                        <Button onClick={() => router.back()} className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 py-6 font-bold w-full mt-4">
                             <ArrowLeft className="w-5 h-5 mr-2" /> Quay lại trang trước
                         </Button>
                     </div>
@@ -156,10 +158,8 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
         );
     }
     
-    // Tách chuỗi ảnh lấy link đầu tiên làm avatar
     const displayAvatar = artist.portfolioImages ? artist.portfolioImages.split(',')[0] : defaultAvatar;
 
-    // 3. Màn hình Chính
     return (
         <div className="bg-[#FFF5F8] min-h-screen font-sans pb-20">
             <Header />
@@ -167,8 +167,8 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
             <main className="max-w-7xl mb-8 mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* === CỘT TRÁI === */}
                 <div className="lg:col-span-8 space-y-6">
-                  
                     <div className="bg-white rounded-3xl p-8 flex flex-col md:flex-row gap-8 shadow-sm relative overflow-hidden">
+                        
                         {artist.ownerId && (
                             <Link 
                                 href={`/provider/${artist.ownerId}`} 
@@ -178,6 +178,7 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                                 Thuộc quản lý: <span className="underline decoration-pink-300 underline-offset-2">{artist.ownerName || "Xem chi tiết"}</span>
                             </Link>
                         )}
+
                         <div className="w-32 h-32 rounded-full border-4 border-pink-100 overflow-hidden shrink-0 relative bg-gray-50 flex items-center justify-center mt-4 md:mt-0">
                             {displayAvatar !== defaultAvatar ? (
                                 <Image src={displayAvatar} alt={artist.artistName || "Avatar"} fill className="object-cover" unoptimized />
@@ -200,7 +201,7 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                                 Chuyên môn: <span className="text-gray-700">{artist.specialization || "Chưa cập nhật"}</span>
                             </p>
 
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-6 mt-4">
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4 mt-4">
                                 <span className="flex items-center gap-1">
                                     <Star className="w-4 h-4 text-yellow-400 fill-current" /> 
                                     {artist.averageRating ? artist.averageRating.toFixed(1) : "0.0"} 
@@ -213,43 +214,80 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                                 </span>
                             </div>
 
-                            <div className="flex flex-wrap gap-3">
-                                {/* PHÂN QUYỀN NÚT BẤM DỰA VÀO isOwner */}
+                            <div className="flex flex-wrap gap-3 mb-4">
                                 {isOwner ? (
                                     <Button className="bg-black hover:bg-gray-800 text-white rounded-full px-8 flex items-center gap-2">
                                         <Edit className="w-4 h-4" />
                                         Chỉnh sửa hồ sơ thợ
                                     </Button>
                                 ) : (
-                                    <>
-                                        <Button className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8">
-                                            Đặt lịch Artist này
-                                        </Button>
-                                        
-                                        <Button 
-                                            variant={isFollowing ? "secondary" : "outline"} 
-                                            className={`rounded-full px-6 transition-all ${
-                                                isFollowing 
-                                                    ? "bg-pink-100 text-[#E4187D] hover:bg-pink-200 border-transparent font-semibold" 
-                                                    : "border-gray-200 text-gray-600 hover:bg-gray-50 font-medium"
-                                            }`}
-                                            onClick={handleFollowToggle}
-                                            disabled={isFollowLoading}
-                                        >
-                                            <Heart 
-                                                className={`w-4 h-4 mr-2 transition-transform ${isFollowLoading ? "animate-pulse" : ""} ${
-                                                    isFollowing ? "fill-[#E4187D] text-[#E4187D] scale-110" : ""
-                                                }`} 
-                                            /> 
-                                            {isFollowing ? "Hủy follow" : "Follow"}
-                                        </Button>
-                                    </>
+                                    <Button 
+                                        variant={isFollowing ? "secondary" : "outline"} 
+                                        className={`rounded-full px-6 transition-all ${
+                                            isFollowing 
+                                                ? "bg-pink-100 text-[#E4187D] hover:bg-pink-200 border-transparent font-semibold" 
+                                                : "border-gray-200 text-gray-600 hover:bg-gray-50 font-medium"
+                                        }`}
+                                        onClick={handleFollowToggle}
+                                        disabled={isFollowLoading}
+                                    >
+                                        <Heart 
+                                            className={`w-4 h-4 mr-2 transition-transform ${isFollowLoading ? "animate-pulse" : ""} ${
+                                                isFollowing ? "fill-[#E4187D] text-[#E4187D] scale-110" : ""
+                                            }`} 
+                                        /> 
+                                        {isFollowing ? "Hủy follow" : "Follow"}
+                                    </Button>
                                 )}
                             </div>
+
+                            {!isOwner && (
+                                <div className="mt-5 p-5 bg-pink-50/50 border border-pink-100 rounded-2xl shadow-sm">
+                                    <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                        <Scissors className="w-4 h-4 text-[#E4187D]" />
+                                        Chọn dịch vụ để đặt lịch với {artist.artistName}:
+                                    </h3>
+                                    
+                                    {providerServices.length > 0 ? (
+                                        <div className="flex flex-col gap-3">
+                                            {providerServices.map(svc => (
+                                                <div key={svc.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 border border-pink-100/60 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow gap-3 sm:gap-0">
+                                                    <div>
+                                                        <Link 
+                                                            href={`/services/${svc.id}`} 
+                                                            className="font-bold text-gray-900 hover:text-[#E4187D] transition-colors text-sm line-clamp-1"
+                                                        >
+                                                            {svc.name}
+                                                        </Link>
+                                                        <div className="flex items-center gap-3 mt-1.5">
+                                                            <span className="text-[#E4187D] font-bold text-sm">
+                                                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(svc.price)}
+                                                            </span>
+                                                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                                                                <Clock className="w-3.5 h-3.5" /> {svc.duration} phút
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <Button
+                                                        onClick={() => router.push(`/booking/${svc.id}?artistId=${artist.id}`)}
+                                                        className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-lg px-5 h-9 text-xs font-bold shadow-sm w-full sm:w-auto"
+                                                    >
+                                                        Đặt lịch ngay
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-500 italic bg-white p-3 rounded-lg border border-gray-100">
+                                            Chủ tiệm hiện chưa cập nhật dịch vụ nào khả dụng.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Bảng lịch trình */}
                     <div className="bg-white rounded-3xl p-8 shadow-sm">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -259,7 +297,6 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                                 <span className="text-sm font-medium text-[#E4187D] bg-pink-50 px-3 py-1 rounded-full">
                                     {schedule.length} lịch hẹn
                                 </span>
-                                {/* NÚT QUẢN LÝ LỊCH CHỈ HIỆN VỚI OWNER */}
                                 {isOwner && (
                                     <Button variant="outline" size="sm" className="text-[#E4187D] border-pink-200 hover:bg-pink-50 rounded-full h-8">
                                         <Edit className="w-3.5 h-3.5 mr-1.5" /> Quản lý lịch
