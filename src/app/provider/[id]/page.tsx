@@ -127,9 +127,8 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                         </div>
 
                         <div className="hidden md:flex flex-col gap-4 border-l border-gray-100 pl-6 shrink-0">
-                            <div className="text-center"><p className="text-xl font-bold text-gray-900">0</p><p className="text-xs text-gray-500">Đặt lịch</p></div>
                             <div className="text-center"><p className="text-xl font-bold text-gray-900">{data.artists?.length || 0}</p><p className="text-xs text-gray-500">Artist</p></div>
-                            <div className="text-center"><p className="text-xl font-bold text-gray-900">0 <Star className="inline w-4 h-4 text-yellow-400 fill-current -mt-1" /></p><p className="text-xs text-gray-500">{data.totalReviews} đánh giá</p></div>
+                            <div className="text-center"><p className="text-xl font-bold text-gray-900">{data.averageRating} <Star className="inline w-4 h-4 text-yellow-400 fill-current -mt-1" /></p><p className="text-xs text-gray-500">{data.totalReviews} đánh giá</p></div>
                         </div>
                     </div>
 
