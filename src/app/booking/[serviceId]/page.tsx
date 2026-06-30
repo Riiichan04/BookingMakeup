@@ -12,7 +12,7 @@ import {
   Star,
   Loader2,
   AlertCircle,
-  CheckCircle2, // Đã thêm icon Check cho thông báo thành công
+  CheckCircle2,
 } from "lucide-react";
 import { MakeupService } from "@/types/service";
 import { createBooking, getBookingsByArtist } from "@/lib/api/booking";
@@ -20,6 +20,9 @@ import Image from "next/image";
 import { getServiceDetail } from "@/services/artist-service";
 import { ServiceDetailResponse } from "@/types/artist";
 import { useAuth } from "@/contexts/auth-context";
+import { PromotionDto } from "@/types/promotion";
+import { validatePromotion } from "@/lib/api/promotions";
+import { getPlatformPromotions, getStudioPromotions } from "@/lib/api/booking";
 
 // Helpers
 function pad(n: number) {
@@ -46,7 +49,6 @@ function generateTimeSlots(): string[] {
 
 const TIME_SLOTS = generateTimeSlots();
 
-// Tháng VN
 const MONTH_NAMES = [
   "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4",
   "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8",
@@ -150,8 +152,9 @@ export default function BookingPage() {
   const router = useRouter();
 
   const serviceId = params.serviceId as string;
-  const artistId = searchParams.get("artistId") ?? "";
-  const { user } = useAuth()
+  const ownerId = searchParams.get("ownerId") ?? "";
+
+  const { user, updateUser } = useAuth();
 
   const [service, setService] = useState<MakeupService | null>(null);
 
@@ -184,19 +187,26 @@ export default function BookingPage() {
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [promoCode, setPromoCode] = useState("");
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
   const [bookedSlots, setBookedSlots] = useState<Set<string>>(new Set());
 
+  // Promotion States
+  const [promoCode, setPromoCode] = useState("");
+  const [availablePromos, setAvailablePromos] = useState<PromotionDto[]>([]);
+  const [validatingPromo, setValidatingPromo] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [pointCharge, setPointCharge] = useState(0);
+  const [promoStatus, setPromoStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+
   const [loading, setLoading] = useState(false);
-  const [loadingSchedule, setLoadingSchedule] = useState(!!artistId);
-
+  const [loadingSchedule, setLoadingSchedule] = useState(!!ownerId);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null); // State thông báo thành công
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Fetch lịch đặt
   useEffect(() => {
-    if (!artistId) return;
-    getBookingsByArtist(artistId)
+    if (!ownerId) return;
+    getBookingsByArtist(ownerId)
       .then(bookings => {
         const dates = new Set<string>();
         const slots = new Set<string>();
@@ -211,18 +221,100 @@ export default function BookingPage() {
       })
       .catch(() => { })
       .finally(() => setLoadingSchedule(false));
-  }, [artistId]);
+  }, [ownerId]);
 
+  // Fetch Promotions (Sàn + Studio) Cùng lúc
+  useEffect(() => {
+    if (!ownerId) return;
+
+    const fetchAllPromotions = async () => {
+      try {
+        const [platformData, studioData] = await Promise.all([
+          getPlatformPromotions().catch(() => []),
+          getStudioPromotions(ownerId).catch(() => [])
+        ]);
+
+        const combinedPromos = [...(studioData || []), ...(platformData || [])];
+        setAvailablePromos(combinedPromos);
+      } catch (e) {
+        console.error("Lỗi lấy danh sách voucher", e);
+      }
+    };
+
+    fetchAllPromotions();
+  }, [ownerId]);
+
+  // Kiểm tra slot đã có người đặt chưa
   const isSlotBooked = useCallback((time: string) => {
     if (!selectedDate) return false;
     return bookedSlots.has(`${selectedDate}_${time}`);
   }, [selectedDate, bookedSlots]);
 
+  const isSlotPassed = useCallback((time: string) => {
+    if (!selectedDate) return false;
+
+    const now = new Date();
+    const dateParts = selectedDate.split("-");
+    if (dateParts.length !== 3) return false;
+
+    const [y, m, d] = dateParts.map(Number);
+    const [h, min] = time.split(":").map(Number);
+
+    const slotDateTime = new Date(y, m - 1, d, h, min, 0);
+    return slotDateTime.getTime() <= now.getTime();
+  }, [selectedDate]);
+
+  // Tính toán Tổng tiền
   const basePrice = service?.priceFrom ?? 0;
-  const depositAmount = Math.round(basePrice * 0.55);
+  // Cọc gốc 55%
+  const originalDeposit = Math.round(basePrice * 0.55);
+  // Tiền cọc sau cùng = Cọc gốc trừ đi Voucher (không rớt xuống âm)
+  const depositAmount = Math.round(Math.max(0, originalDeposit - discountAmount));
+  const earnedPoints = Math.floor(depositAmount / 10000);
+
+  const handleApplyPromo = async (codeToApply: string) => {
+    if (!codeToApply.trim()) {
+      setDiscountAmount(0);
+      setPointCharge(0);
+      setPromoStatus(null);
+      return;
+    }
+
+    setValidatingPromo(true);
+    setPromoStatus(null);
+    try {
+      const res = await validatePromotion({
+        code: codeToApply.trim().toUpperCase(),
+        bookingAmount: basePrice,
+        ownerId: ownerId
+      });
+
+      if (res.valid) {
+        setDiscountAmount(res.discountAmount);
+        setPromoCode(codeToApply.trim().toUpperCase());
+
+        const promo = availablePromos.find(p => p.code.toUpperCase() === codeToApply.trim().toUpperCase());
+        setPointCharge(promo ? promo.pointCharge : 0);
+
+        setPromoStatus({ type: 'success', msg: `Áp dụng thành công! Đã giảm ${formatVND(res.discountAmount)}` });
+      } else {
+        setDiscountAmount(0);
+        setPointCharge(0);
+        setPromoStatus({ type: 'error', msg: res.errorMessage || "Mã không hợp lệ hoặc bạn không đủ điều kiện/điểm." });
+      }
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: string | { message?: string } } })?.response?.data;
+      const errorText = typeof msg === "string" ? msg : (msg?.message ?? "Lỗi xác thực mã giảm giá");
+      setDiscountAmount(0);
+      setPointCharge(0);
+      setPromoStatus({ type: 'error', msg: errorText });
+    } finally {
+      setValidatingPromo(false);
+    }
+  };
 
   const handleSubmit = async () => {
-    if (!serviceId || !artistId) {
+    if (!serviceId || !ownerId) {
       setError("Thiếu thông tin Dịch vụ hoặc Chuyên viên.");
       return;
     }
@@ -230,7 +322,6 @@ export default function BookingPage() {
       setError("Vui lòng chọn ngày và giờ.");
       return;
     }
-
 
     if (!user) {
       router.push("/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search));
@@ -243,14 +334,23 @@ export default function BookingPage() {
     try {
       await createBooking({
         serviceId,
-        ownerId: artistId,
+        ownerId: ownerId,
         bookingDate: selectedDate,
         startTime: selectedTime,
-        promoCode: promoCode.trim() || undefined,
+        promoCode: discountAmount > 0 ? promoCode.trim().toUpperCase() : undefined,
       });
 
-      setSuccessMsg("Đặt lịch thành công! Đang chuyển về trang thông tin của bạn...");
+      if (pointCharge > 0 && user && updateUser) {
+        const updatedUserDto = {
+          ...user,
+          totalPoint: Math.max(0, (user.totalPoint || 0) - pointCharge),
+        };
 
+        // Cập nhật lại state cục bộ
+        updateUser(updatedUserDto);
+      }
+
+      setSuccessMsg("Đặt lịch thành công! Đang chuyển về trang thông tin của bạn...");
       setTimeout(() => {
         router.push("/dashboard");
       }, 2000);
@@ -261,6 +361,8 @@ export default function BookingPage() {
       setLoading(false);
     }
   };
+
+  if (!user) return null;
 
   return (
     <div style={{ minHeight: "100vh", background: "#f9fafb", fontFamily: "var(--font-sans, sans-serif)" }}>
@@ -300,7 +402,7 @@ export default function BookingPage() {
               {loadingSchedule ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#9ca3af", fontSize: 13 }}>
                   <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
-                  Đang tải lịch thợ trang điểm...
+                  Đang tải lịch...
                   <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
                 </div>
               ) : (
@@ -315,17 +417,19 @@ export default function BookingPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
                   {TIME_SLOTS.map(slot => {
                     const booked = isSlotBooked(slot);
+                    const passed = isSlotPassed(slot); // Kiểm tra quá khứ
+                    const disabled = booked || passed;
                     const active = selectedTime === slot;
                     return (
                       <button
-                        key={slot} disabled={booked} onClick={() => !booked && setSelectedTime(slot)}
+                        key={slot} disabled={disabled} onClick={() => !disabled && setSelectedTime(slot)}
                         style={{
                           padding: "8px 0", borderRadius: 10, fontSize: 13, fontWeight: 500,
                           border: active ? "2px solid #ec4899" : "1.5px solid #e5e7eb",
-                          background: active ? "#ec4899" : booked ? "#f3f4f6" : "#fff",
-                          color: active ? "#fff" : booked ? "#d1d5db" : "#374151",
-                          cursor: booked ? "not-allowed" : "pointer",
-                          textDecoration: booked ? "line-through" : "none",
+                          background: active ? "#ec4899" : disabled ? "#f3f4f6" : "#fff",
+                          color: active ? "#fff" : disabled ? "#d1d5db" : "#374151",
+                          cursor: disabled ? "not-allowed" : "pointer",
+                          textDecoration: disabled ? "line-through" : "none",
                         }}
                       >
                         {slot.slice(0, 5)}
@@ -336,10 +440,97 @@ export default function BookingPage() {
               )}
             </SectionCard>
 
-            <SectionCard title="Mã giảm giá" icon={<Tag size={16} style={{ color: "#ec4899" }} />}>
-              <div style={{ display: "flex", gap: 10, border: "1.5px solid #e5e7eb", borderRadius: 12, overflow: "hidden" }}>
-                <input type="text" placeholder="Nhập mã giảm giá (nếu có)" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase())} style={{ flex: 1, border: "none", outline: "none", padding: "12px 16px", fontSize: 14, color: "#374151", background: "transparent" }} />
+            {/* PHẦN ĐỔI ĐIỂM VÀ MÃ GIẢM GIÁ */}
+            <SectionCard
+              title={
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  Voucher & Đổi điểm (Bạn có:
+                  {pointCharge > 0 ? (
+                    <>
+                      <span style={{ textDecoration: "line-through", color: "#9ca3af", marginLeft: 2 }}>{user.totalPoint || 0}</span>
+                      <span style={{ color: "#ea580c" }}>{Math.max(0, (user.totalPoint || 0) - pointCharge)}</span>
+                    </>
+                  ) : (
+                    <span style={{ marginLeft: 2 }}>{user.totalPoint || 0}</span>
+                  )}
+                  điểm)
+                </span>
+              }
+              icon={<Tag size={16} style={{ color: "#ec4899" }} />}
+            >
+              <div style={{ display: "flex", gap: 8, marginBottom: availablePromos.length > 0 ? 16 : 0 }}>
+                <input
+                  type="text"
+                  placeholder="Nhập mã giảm giá..."
+                  value={promoCode}
+                  onChange={e => setPromoCode(e.target.value.toUpperCase())}
+                  style={{ flex: 1, border: "1.5px solid #e5e7eb", outline: "none", padding: "10px 14px", fontSize: 14, color: "#374151", background: "transparent", borderRadius: 12 }}
+                />
+                <button
+                  onClick={() => handleApplyPromo(promoCode)}
+                  disabled={validatingPromo || !promoCode}
+                  style={{ padding: "0 16px", background: validatingPromo || !promoCode ? "#f3f4f6" : "#ec4899", color: validatingPromo || !promoCode ? "#9ca3af" : "#fff", border: "none", borderRadius: 12, fontWeight: 600, cursor: validatingPromo || !promoCode ? "not-allowed" : "pointer", transition: "all 0.2s" }}
+                >
+                  {validatingPromo ? <Loader2 size={16} className="animate-spin" /> : "Áp dụng"}
+                </button>
               </div>
+
+              {promoStatus && (
+                <div style={{ marginTop: 12, marginBottom: availablePromos.length > 0 ? 16 : 0, display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 14px", borderRadius: 10, background: promoStatus.type === 'success' ? '#f0fdf4' : '#fef2f2', border: `1px solid ${promoStatus.type === 'success' ? '#bbf7d0' : '#fecaca'}` }}>
+                  {promoStatus.type === 'success' ? <CheckCircle2 size={16} style={{ color: "#16a34a", marginTop: 1, flexShrink: 0 }} /> : <AlertCircle size={16} style={{ color: "#dc2626", marginTop: 1, flexShrink: 0 }} />}
+                  <p style={{ margin: 0, fontSize: 13, color: promoStatus.type === 'success' ? "#16a34a" : "#dc2626", fontWeight: 500 }}>{promoStatus.msg}</p>
+                </div>
+              )}
+
+              {availablePromos.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", margin: 0 }}>Mã giảm giá đang có:</p>
+                  {availablePromos.map(promo => {
+                    const notEnoughPoints = promo.pointCharge > (user.totalPoint || 0);
+                    const notEnoughPrice = basePrice < promo.minOrderValue;
+                    const disabled = notEnoughPoints || notEnoughPrice || validatingPromo;
+                    const isPlatformPromo = !promo.ownerId; // Nhận biết mã Sàn
+
+                    return (
+                      <div key={promo.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, border: disabled ? "1px dashed #e5e7eb" : "1px solid #f9a8d4", background: disabled ? "#f9fafb" : "#fdf2f8", borderRadius: 12 }}>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                            <p style={{ margin: 0, fontWeight: 800, color: disabled ? "#9ca3af" : "#be185d", fontSize: 14 }}>{promo.code}</p>
+
+                            <span style={{
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                              fontSize: 10,
+                              fontWeight: 600,
+                              background: disabled ? "#e5e7eb" : (isPlatformPromo ? "#ffffff" : "#111827"),
+                              color: disabled ? "#6b7280" : (isPlatformPromo ? "#111827" : "#ffffff"),
+                              border: isPlatformPromo && !disabled ? "1px solid #e5e7eb" : "none"
+                            }}>
+                              {isPlatformPromo ? "Mã Toàn Sàn" : "Mã Studio"}
+                            </span>
+                          </div>
+
+                          <p style={{ margin: 0, fontSize: 12, color: disabled ? "#9ca3af" : "#ec4899" }}>
+                            Giảm {formatVND(promo.discountValue)}
+                            {promo.pointCharge > 0 ? ` (Cần: ${promo.pointCharge} điểm)` : ""}
+                          </p>
+                          {notEnoughPrice && <p style={{ margin: "2px 0 0", fontSize: 11, color: "#ef4444" }}>Đơn tối thiểu: {formatVND(promo.minOrderValue)}</p>}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setPromoCode(promo.code);
+                            handleApplyPromo(promo.code);
+                          }}
+                          disabled={disabled}
+                          style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, color: disabled ? "#9ca3af" : "#fff", background: disabled ? "#e5e7eb" : "#ec4899", border: "none", borderRadius: 8, cursor: disabled ? "not-allowed" : "pointer" }}
+                        >
+                          {notEnoughPoints ? "Thiếu điểm" : "Dùng ngay"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </SectionCard>
           </div>
 
@@ -356,17 +547,61 @@ export default function BookingPage() {
               <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 16, marginBottom: 16 }}>
                 <SummaryRow icon={<Calendar size={14} />} label="Ngày" value={selectedDate ? selectedDate.split("-").reverse().join("-") : "Chưa chọn"} empty={!selectedDate} />
                 <SummaryRow icon={<Clock size={14} />} label="Giờ" value={selectedTime ? selectedTime.slice(0, 5) : "Chưa chọn"} empty={!selectedTime} />
-                {promoCode && <SummaryRow icon={<Tag size={14} />} label="Mã KM" value={promoCode} />}
+                {discountAmount > 0 && <SummaryRow icon={<Tag size={14} />} label="Mã KM" value={promoCode.toUpperCase()} />}
               </div>
 
+              {/* TÍNH TIỀN */}
               <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 16, marginBottom: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, color: "#6b7280" }}>Tổng thanh toán</span>
-                  <span style={{ fontSize: 13, color: "#111827", fontWeight: 700 }}>{formatVND(basePrice)}</span>
+                  <span style={{ fontSize: 13, color: "#6b7280" }}>Giá dịch vụ</span>
+                  <span style={{ fontSize: 13, color: "#111827", fontWeight: 600 }}>{formatVND(basePrice)}</span>
                 </div>
+
+                {discountAmount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, color: "#16a34a" }}>Giảm giá (Voucher)</span>
+                    <span style={{ fontSize: 13, color: "#16a34a", fontWeight: 700 }}>-{formatVND(discountAmount)}</span>
+                  </div>
+                )}
+
+                {/* HIỂN THỊ ĐIỂM SAU QUY ĐỔI */}
+                {pointCharge > 0 && discountAmount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, color: "#ea580c" }}>Điểm sau quy đổi</span>
+                    <div>
+                      <span style={{ fontSize: 13, color: "#9ca3af", textDecoration: "line-through", marginRight: 8 }}>{user.totalPoint || 0}</span>
+                      <span style={{ fontSize: 13, color: "#ea580c", fontWeight: 700 }}>{Math.max(0, (user.totalPoint || 0) - pointCharge)} điểm</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* TỔNG THANH TOÁN (LUÔN GIỮ GIÁ GỐC) */}
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, borderTop: "1px dashed #e5e7eb", paddingTop: 8 }}>
+                  <span style={{ fontSize: 13, color: "#6b7280" }}>Tổng thanh toán</span>
+                  <div>
+                    <span style={{ fontSize: 15, color: "#111827", fontWeight: 800 }}>{formatVND(basePrice)}</span>
+                  </div>
+                </div>
+
+                {earnedPoints > 0 && (
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16, marginTop: -8 }}>
+                    <div style={{ background: "#fdf2f8", border: "1px solid #fbcfe8", padding: "4px 8px", borderRadius: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 11, color: "#ec4899" }}>
+                        Nhận <span className="font-bold text-sm">{earnedPoints}</span> điểm sau khi dịch vụ hoàn thành
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* TIỀN CỌC (CÓ SLASH) */}
                 <div style={{ background: "#fdf2f8", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: 13, color: "#be185d", fontWeight: 600 }}>Cọc trước (55%)</span>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: "#ec4899" }}>{formatVND(depositAmount)}</span>
+                  <div>
+                    {discountAmount > 0 && (
+                      <span style={{ fontSize: 13, color: "#f9a8d4", textDecoration: "line-through", marginRight: 8 }}>{formatVND(originalDeposit)}</span>
+                    )}
+                    <span style={{ fontSize: 16, fontWeight: 800, color: "#ec4899" }}>{formatVND(depositAmount)}</span>
+                  </div>
                 </div>
               </div>
 
@@ -409,7 +644,7 @@ export default function BookingPage() {
   );
 }
 
-function SectionCard({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
+function SectionCard({ title, icon, children }: { title: React.ReactNode; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{ background: "#fff", borderRadius: 20, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #f0f0f0" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>

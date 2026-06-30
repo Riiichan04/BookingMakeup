@@ -1,5 +1,6 @@
 import { BookingDto, CreateBookingRequest, BookingStatus } from "@/types/booking";
 import apiClient from "./client";
+import { PromotionDto } from "@/types/promotion";
 
 // Tạo booking mới
 export async function createBooking(data: CreateBookingRequest): Promise<BookingDto> {
@@ -31,3 +32,14 @@ export async function updateBookingStatus(id: string, status: BookingStatus): Pr
   return data;
 }
 
+// Lấy giảm giá trong trang booking
+export async function getPlatformPromotions(): Promise<PromotionDto[]> {
+  const { data } = await apiClient.get<PromotionDto[]>("/promotions/platform");
+  return data;
+}
+
+// Lấy mã đang áp dụng của Studio
+export async function getStudioPromotions(ownerId: string): Promise<PromotionDto[]> {
+  const { data } = await apiClient.get<PromotionDto[]>(`/promotions/studio/${ownerId}`);
+  return data;
+}

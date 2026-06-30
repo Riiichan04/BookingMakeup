@@ -10,6 +10,7 @@ export interface AuthDto {
     isVerified: boolean;
     role: number;
     jwtToken: string | null;
+    totalPoint: number;
 }
 
 export interface AuthResponse {
