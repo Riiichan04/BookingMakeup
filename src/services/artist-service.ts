@@ -33,6 +33,10 @@ export const artistService = {
   checkFollowStatus: async (artistId: string): Promise<boolean> => {
     const response = await apiClient.get(`/artists/${artistId}/follow-status`);
     return response.data;
+  },
+  getFollowedArtists: async (): Promise<Artist[]> => {
+    const response = await apiClient.get('/artists/followed');
+    return response.data;
   }
 };
 
