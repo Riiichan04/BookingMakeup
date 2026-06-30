@@ -34,5 +34,26 @@ export const profileService = {
   updateServiceOwnerProfile: async (data: UpdateServiceOwnerProfileRequest): Promise<ServiceOwnerProfileDto> => {
     const response = await apiClient.put('/users/profile/service-owner', data);
     return response.data;
+  },
+
+  checkIsServiceOwner: async (): Promise<boolean> => {
+    if (typeof window === "undefined") return false;
+
+    const cached = sessionStorage.getItem("is_service_owner");
+    if (cached === "true") return true;
+    if (cached === "false") return false;
+
+    try {
+      const res = await profileService.getServiceOwnerProfile();
+      if (res && res.userId) {
+        sessionStorage.setItem("is_service_owner", "true");
+        return true;
+      }
+      sessionStorage.setItem("is_service_owner", "false");
+      return false;
+    } catch {
+      sessionStorage.setItem("is_service_owner", "false");
+      return false;
+    }
   }
 };

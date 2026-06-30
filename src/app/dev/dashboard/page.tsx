@@ -21,43 +21,27 @@ export default function DashboardRootPage() {
         }
 
         const determineAndRedirect = async () => {
-            console.log("DỮ LIỆU USER TỪ BACKEND TRẢ VỀ:", user);
             
             const userRole = String(user.role).toUpperCase().trim();
-            console.log("ROLE SAU KHI XỬ LÝ CHUỖI:", userRole);
 
-            // 1. NẾU LÀ ADMIN -> Chuyển vào menu Quản lý người dùng
-            if (userRole === "ADMIN") {
+            // 1. NẾU LÀ ADMIN (1) -> Chuyển vào menu Quản lý người dùng
+            if (userRole === "ADMIN" || userRole === "1") {
                 router.push("/dev/dashboard/admin/users");
                 return;
             }
 
-            // 2. NẾU BACKEND TRẢ VỀ RÕ LÀ SERVICE OWNER -> Chuyển vào Quản lý lịch khách đặt
-            if (userRole === "SO") {
+            // 2. NẾU LÀ USER (0) -> Kiểm tra xem có phải là Service Owner (SO) bằng cách gọi API profile
+            // (Vì trên server chỉ có role admin=1 và user=0, thông tin SO được lưu ở bảng service_owners)
+            const isSO = await profileService.checkIsServiceOwner();
+            if (isSO) {
+                console.log("Người dùng là Service Owner (SO). Chuyển vào menu SO.");
                 router.push("/dev/dashboard/so/bookings");
                 return;
-            }
-
-            // 3. NẾU LÀ USER -> Kiểm tra xem có phải là Chủ tiệm (SO) không
-            if (userRole === "USER") {
-                try {
-                    const res = await profileService.getServiceOwnerProfile();
-                    if (res && res.userId) {
-                        // Là Chủ tiệm -> Chuyển vào Quản lý lịch khách đặt
-                        router.push("/dev/dashboard/so/bookings");
-                    } else {
-                        // Là Khách hàng -> Chuyển vào Lịch hẹn của tôi
-                        router.push("/dev/dashboard/customer/bookings");
-                    }
-                } catch (error) {
-                    // Lỗi 404/403 tức là Khách hàng -> Chuyển vào Lịch hẹn của tôi
-                    router.push("/dev/dashboard/customer/bookings");
-                }
+            } else {
+                console.log("Người dùng là Customer (khách hàng). Chuyển vào menu Customer.");
+                router.push("/dev/dashboard/customer/bookings");
                 return;
             }
-
-            // Mặc định an toàn nếu không khớp role nào
-            router.push("/dev/dashboard/customer/bookings");
         };
 
         determineAndRedirect();

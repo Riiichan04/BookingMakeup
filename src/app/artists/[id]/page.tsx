@@ -161,10 +161,18 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
         <div className="bg-[#FFF5F8] min-h-screen font-sans pb-20">
             <Header />
 
-            <main className="max-w-7xl mb-8 mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* === CỘT TRÁI === */}
-                <div className="lg:col-span-8 space-y-6">
-                    <div className="bg-white rounded-3xl p-8 flex flex-col md:flex-row gap-8 shadow-sm relative overflow-hidden">
+            <main className="max-w-7xl mb-8 mx-auto px-4 mt-8">
+                <button 
+                  onClick={() => router.push("/dev/dashboard")} 
+                  className="flex items-center gap-2 text-gray-600 hover:text-pink-600 font-medium mb-6 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Quay lại Dashboard
+                </button>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* === CỘT TRÁI === */}
+                    <div className="lg:col-span-8 space-y-6">
+                        <div className="bg-white rounded-3xl p-8 flex flex-col md:flex-row gap-8 shadow-sm relative overflow-hidden">
                         
                         {artist.ownerId && (
                             <Link 
@@ -349,6 +357,7 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                             </div>
                         </div>
                     </div>
+                </div>
                 </div>
             </main>
             

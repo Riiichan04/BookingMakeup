@@ -16,11 +16,11 @@ export default function SODashboardLayout({ children }: { children: React.ReactN
     useEffect(() => {
         // Kiểm tra xem thực sự có phải là SO không (Bảo mật)
         const checkSO = async () => {
-            try {
-                await profileService.getServiceOwnerProfile();
+            const isSO = await profileService.checkIsServiceOwner();
+            if (isSO) {
                 setIsVerified(true);
-            } catch (error) {
-                router.push("/dashboard/customer/profile"); // Đá về trang khách nếu hack URL
+            } else {
+                router.push("/dev/dashboard/customer/profile"); // Đá về trang khách nếu hack URL
             }
         };
         if (user) checkSO();

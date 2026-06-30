@@ -6,7 +6,7 @@ import { profileService } from "@/services/profile-service";
 import { toast } from "sonner";
 import { Loader2, User, Settings, Image as ImageIcon, ShieldCheck } from "lucide-react";
 
-export default function ProfilePage() {
+export default function ProfilePage({ mode }: { mode?: "customer" | "so" | "admin" }) {
     const { user } = useAuth();
     
     // State Thông tin cơ bản (UserDto)
@@ -38,17 +38,24 @@ export default function ProfilePage() {
                 setAddress(fullProfile.address || "");
                 setGender(fullProfile.gender?.toString() || "0");
 
-                // 2. Thử tải thông tin cửa hàng (Nếu có trả về -> Người này là SO)
-                try {
-                    const soProfile = await profileService.getServiceOwnerProfile();
-                    setIsSO(true);
-                    setBio(soProfile.bio || "");
-                    setExperienceYears(soProfile.experienceYears || 0);
-                    setIdentityFront(soProfile.identityFront || "");
-                    setIdentityBack(soProfile.identityBack || "");
-                    setSoStatus(soProfile.verificationStatus);
-                } catch (e) {
-                    setIsSO(false); 
+                // Check xem có nên gọi API SO không để tránh lỗi 400 Bad Request trên console F12 của User thường
+                const shouldFetchSO = mode === "so" || (!mode && typeof window !== "undefined" && window.location.pathname.includes("/so/"));
+
+                if (shouldFetchSO) {
+                    // 2. Thử tải thông tin cửa hàng (Nếu có trả về -> Người này là SO)
+                    try {
+                        const soProfile = await profileService.getServiceOwnerProfile();
+                        setIsSO(true);
+                        setBio(soProfile.bio || "");
+                        setExperienceYears(soProfile.experienceYears || 0);
+                        setIdentityFront(soProfile.identityFront || "");
+                        setIdentityBack(soProfile.identityBack || "");
+                        setSoStatus(soProfile.verificationStatus);
+                    } catch (e) {
+                        setIsSO(false); 
+                    }
+                } else {
+                    setIsSO(false);
                 }
             } catch (error) {
                 toast.error("Không thể tải thông tin hồ sơ.");
@@ -58,7 +65,7 @@ export default function ProfilePage() {
         };
 
         loadProfile();
-    }, [user]);
+    }, [user, mode]);
 
     const handleSave = async () => {
         setSaving(true);

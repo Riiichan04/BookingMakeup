@@ -7,9 +7,11 @@ import ArtistCard from '@/components/artists/ArtistCard';
 import AddArtistModal from '@/components/artists/AddArtistModal'; 
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { Loader2, AlertCircle } from "lucide-react"; 
+import { Loader2, AlertCircle, ArrowLeft } from "lucide-react"; 
+import { useRouter } from "next/navigation";
 
 export default function ArtistManagementPage() {
+  const router = useRouter();
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -80,6 +82,13 @@ export default function ArtistManagementPage() {
       <Header />
 
       <main className="flex-1 p-8 max-w-7xl w-full mx-auto relative mb-12">
+        <button 
+          onClick={() => router.back()} 
+          className="flex items-center gap-2 text-gray-600 hover:text-pink-600 font-medium mb-6 transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Quay lại
+        </button>
+
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Quản lý Artist</h1>
         
