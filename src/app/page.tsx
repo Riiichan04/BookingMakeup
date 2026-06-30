@@ -50,7 +50,7 @@ export default function HomePage() {
         const params = new URLSearchParams();
         if (keyword.trim()) params.append("keyword", keyword.trim());
         if (location.trim()) params.append("location", location.trim());
-        router.push(`/artists?${params.toString()}`);
+        router.push(`/search?${params.toString()}`);
     };
 
     return (
@@ -170,7 +170,7 @@ export default function HomePage() {
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {featuredArtists.map((artist) => (
-                            <Link href={`/provider/${artist.id}`} key={artist.id}>
+                            <Link href={`/artists/${artist.id}`} key={artist.id}>
                                 <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group cursor-pointer h-full flex flex-col">
                                     <div className="relative w-full h-48 rounded-xl overflow-hidden mb-4">
                                         <Image
