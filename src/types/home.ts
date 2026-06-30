@@ -16,7 +16,7 @@ export interface FeaturedArtistDto {
     priceFrom: number;
 }
 
-export interface PromotionDto {
+export interface HomePromotionDto {
     id: string;
     title: string;
     code: string;
@@ -25,7 +25,7 @@ export interface PromotionDto {
     validUntil: string;
 }
 
-export interface ReviewDto {
+export interface HomeReviewDto {
     id: string;
     customerName: string;
     customerAvatar: string;
