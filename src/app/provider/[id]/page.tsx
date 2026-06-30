@@ -159,7 +159,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                                             <Button
                                                 size="sm"
                                                 className="cursor-pointer h-7 bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full p-4 w-fit"
-                                                onClick={() => router.push(`/booking/${svc.id}`)}
+                                                onClick={() => router.push(`/booking/${svc.id}?ownerId=${data.ownerId}`)}
                                             >
                                                 Đặt lịch
                                             </Button>

@@ -124,7 +124,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                             <h3 className="text-2xl font-bold mb-6">{svc.ownerName}</h3>
                             <Button
                                 className="w-full bg-white text-[#E4187D] hover:bg-gray-50 hover:text-[#E4187D] rounded-full font-bold py-6 text-base transition-colors"
-                                onClick={() => router.push(`/booking/${svc.serviceId}?artistId=${svc.ownerId}`)}
+                                onClick={() => router.push(`/booking/${svc.serviceId}?ownerId=${svc.ownerId}`)}
                             >
                                 ĐẶT LỊCH NGAY
                             </Button>
