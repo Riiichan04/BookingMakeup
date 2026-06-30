@@ -8,7 +8,7 @@ export interface AuthDto {
     description: string | null;
     isActive: boolean;
     isVerified: boolean;
-    role: number;
+    role: "USER" | "ADMIN" | "SERVICE_OWNER";
     jwtToken: string | null;
     totalPoint: number;
 }
