@@ -34,11 +34,9 @@ export default function DashboardRootPage() {
             // (Vì trên server chỉ có role admin=1 và user=0, thông tin SO được lưu ở bảng service_owners)
             const isSO = await profileService.checkIsServiceOwner();
             if (isSO) {
-                console.log("Người dùng là Service Owner (SO). Chuyển vào menu SO.");
                 router.push("/dev/dashboard/so/bookings");
                 return;
             } else {
-                console.log("Người dùng là Customer (khách hàng). Chuyển vào menu Customer.");
                 router.push("/dev/dashboard/customer/bookings");
                 return;
             }

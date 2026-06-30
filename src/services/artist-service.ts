@@ -46,7 +46,6 @@ export const getProviderProfile = async (id: string): Promise<ProviderProfileRes
         if (!res.ok) return null;
 
         const result = await res.json() as ProviderProfileResponse;
-        console.log(result)
         return result
     } catch (error) {
         console.error("Lỗi fetch provider profile:", error);
