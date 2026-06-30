@@ -47,11 +47,9 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                 );
                 setSchedule(activeBookings);
 
-                // 2. Kéo danh sách dịch vụ của Chủ Tiệm (KHÔNG DÙNG ANY)
                 if (artistData.ownerId) {
                     try {
                         const profile = await getProviderProfile(artistData.ownerId);
-                        // TS giờ đã hiểu profile có thể chứa services
                         if (profile?.services && profile.services.length > 0) {
                             setProviderServices(profile.services);
                         }
@@ -62,7 +60,6 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                     }
                 }
 
-                // 3. Phân quyền và trạng thái Follow
                 if (user) {
                     try {
                         const myArtists = await artistService.getMyArtists();
@@ -270,7 +267,7 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                                                     </div>
 
                                                     <Button
-                                                        onClick={() => router.push(`/booking/${svc.id}?artistId=${artist.id}`)}
+                                                        onClick={() => router.push(`/booking/${svc.id}?ownerId=${artist.ownerId}`)}
                                                         className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-lg px-5 h-9 text-xs font-bold shadow-sm w-full sm:w-auto"
                                                     >
                                                         Đặt lịch ngay
