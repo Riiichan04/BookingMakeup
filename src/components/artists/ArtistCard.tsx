@@ -27,10 +27,10 @@ export default function ArtistCard({ artist }: ArtistCardProps) {
         
         <div className="flex justify-between items-center text-sm font-medium border-t pt-4 mt-auto">
           <span className="flex items-center text-yellow-600 bg-yellow-50 px-2 py-1 rounded-md">
-            ⭐ {artist.averageRating} ({artist.reviewCount})
+            ⭐ {artist.averageRating ? artist.averageRating.toFixed(1) : "0.0"} ({artist.reviewCount || 0})
           </span>
           <span className="flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-            Follow {artist.followCount}
+            Follow {artist.followCount || 0}
           </span>
         </div>
       </div>

@@ -20,7 +20,7 @@ export default function SODashboardLayout({ children }: { children: React.ReactN
             if (isSO) {
                 setIsVerified(true);
             } else {
-                router.push("/dev/dashboard/customer/profile"); // Đá về trang khách nếu hack URL
+                router.push("/dashboard/customer/profile");
             }
         };
         if (user) checkSO();
