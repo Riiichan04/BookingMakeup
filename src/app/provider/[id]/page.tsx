@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { SERVICE_DEPOSITE_AMOUNT } from "@/common/constant/service-deposite";
 import { ProviderProfileResponse } from "@/types/service-provider";
 import { useAuth } from "@/contexts/auth-context";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function ProviderProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -20,6 +21,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
 
     const [data, setData] = useState<ProviderProfileResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [bookingServiceId, setBookingServiceId] = useState<string | null>(null);
 
     useEffect(() => {
         getProviderProfile(resolvedParams.id)
@@ -81,7 +83,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                             {data.avatarUrl ? (
                                 <Image src={data.avatarUrl} alt={data.displayName} fill className="object-cover" unoptimized />
                             ) : (
-                                <span className="text-3xl font-bold text-[#E4187D]">{data.displayName}</span>
+                                <span className="text-3xl font-bold text-[#E4187D]">{data.displayName.charAt(0)}</span>
                             )}
                         </div>
                         <div className="flex-1">
@@ -159,7 +161,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                                             <Button
                                                 size="sm"
                                                 className="cursor-pointer h-7 bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full p-4 w-fit"
-                                                onClick={() => router.push(`/booking/${svc.id}?ownerId=${data.ownerId}`)}
+                                                onClick={() => setBookingServiceId(svc.id)} // Mở Modal chọn Artist
                                             >
                                                 Đặt lịch
                                             </Button>
@@ -222,6 +224,42 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                     </div>
                 </div>
             </main>
+
+            {/* Choose artist modal */}
+            <Dialog open={!!bookingServiceId} onOpenChange={() => setBookingServiceId(null)}>
+                <DialogContent className="sm:max-w-md rounded-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold">Chọn chuyên viên (Artist)</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 gap-3 max-h-[60vh] overflow-y-auto pr-2 mt-2">
+                        {data.artists?.map(art => (
+                            <button
+                                key={art.id}
+                                onClick={() => router.push(`/booking/${bookingServiceId}?ownerId=${data.ownerId}&artistId=${art.id}`)}
+                                className="flex items-center gap-4 p-3 border border-pink-100 rounded-2xl hover:bg-pink-50 transition-colors text-left"
+                            >
+                                <Image
+                                    src={art.avatarUrl || defaultAvatar}
+                                    alt={art.displayName}
+                                    width={48} height={48}
+                                    className="rounded-full object-cover w-12 h-12 border border-gray-100"
+                                    unoptimized
+                                />
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-gray-900">{art.displayName}</h4>
+                                    <p className="text-xs text-gray-500">{art.specialty}</p>
+                                </div>
+                                <div className="text-[#E4187D] text-xs font-bold flex items-center">
+                                    <Star className="w-3.5 h-3.5 fill-current mr-1" /> {art.rating}
+                                </div>
+                            </button>
+                        ))}
+                        {(!data.artists || data.artists.length === 0) && (
+                            <p className="text-sm text-gray-500 text-center py-4">Chưa có chuyên viên nào.</p>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
             <Footer />
         </div>
     );

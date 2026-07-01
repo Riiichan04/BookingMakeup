@@ -4,7 +4,7 @@ export type BookingStatus = "PENDING" | "CONFIRMED" | "REJECTED" | "PAID" | "COM
 export interface CreateBookingRequest {
   serviceId: string;
   ownerId: string;
-  //TODO: Add artistId here if need
+  artistId: string;
   bookingDate: string;
   startTime: string;
   promoCode?: string;
