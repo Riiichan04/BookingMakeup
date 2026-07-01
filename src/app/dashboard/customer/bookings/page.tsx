@@ -185,7 +185,7 @@ export default function CustomerBookingsPage() {
                                 <span className="font-semibold text-gray-700">Thái độ chuyên viên</span>
                                 <div className="flex gap-1">{[1, 2, 3, 4, 5].map(star => <Star key={star} onClick={() => setArtistRating(star)} className={`w-6 h-6 cursor-pointer transition-transform hover:scale-110 ${star <= artistRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />)}</div>
                             </div>
-                            <textarea className="w-full border border-gray-200 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-pink-400 min-h-[100px]" placeholder="Nhận xét chi tiết về trải nghiệm của bạn..." value={comment} onChange={e => setComment(e.target.value)} />
+                            <textarea className="w-full border border-gray-200 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-pink-400 min-h-25" placeholder="Nhận xét chi tiết về trải nghiệm của bạn..." value={comment} onChange={e => setComment(e.target.value)} />
                         </div>
                         <Button onClick={handleSubmitReview} disabled={submittingReview || !comment.trim()} className="w-full bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-xl h-12 font-bold text-base">
                             {submittingReview ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null} Gửi Đánh Giá

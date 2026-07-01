@@ -17,7 +17,8 @@ export const SO_TABS = [
     { label: "Đội ngũ Artist", href: "/artists", icon: Users },
     { label: "Đánh giá nhận được", href: "/dashboard/so/reviews", icon: MessageSquare },
     { label: "Hồ sơ Cửa hàng", href: "/dashboard/so/profile", icon: Settings },
-    { label: "Ví doanh thu", href: "/dashboard/so/wallet", icon: Wallet }
+    { label: "Mã Khuyến mãi", href: "/dashboard/so/promotions", icon: Tag },
+    { label: "Ví doanh thu", href: "/dashboard/so/wallet", icon: Wallet },
 ];
 
 export const CUSTOMER_TABS = [
