@@ -1,4 +1,4 @@
-import { ReviewDto, CreateReviewRequest } from "@/types/review";
+import { ReviewDto, CreateReviewRequest, CheckReviewableResponse } from "@/types/review";
 import apiClient from "./client";
 
 // Gửi đánh giá cho booking đã hoàn thành (Customer)
@@ -34,5 +34,10 @@ export async function updateReviewStatus(id: string, status: "APPROVED" | "PENDI
 // Xóa đánh giá (Admin)
 export async function deleteReview(id: string): Promise<string> {
   const { data } = await apiClient.delete<string>(`/reviews/${id}`);
+  return data;
+}
+
+export async function checkReviewable(artistId: string): Promise<CheckReviewableResponse> {
+  const { data } = await apiClient.get<CheckReviewableResponse>(`/reviews/check-reviewable/${artistId}`);
   return data;
 }
