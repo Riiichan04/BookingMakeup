@@ -33,6 +33,10 @@ export const artistService = {
   checkFollowStatus: async (artistId: string): Promise<boolean> => {
     const response = await apiClient.get(`/artists/${artistId}/follow-status`);
     return response.data;
+  },
+  getFollowedArtists: async (): Promise<Artist[]> => {
+    const response = await apiClient.get('/artists/followed');
+    return response.data;
   }
 };
 
@@ -42,7 +46,6 @@ export const getProviderProfile = async (id: string): Promise<ProviderProfileRes
         if (!res.ok) return null;
 
         const result = await res.json() as ProviderProfileResponse;
-        console.log(result)
         return result
     } catch (error) {
         console.error("Lỗi fetch provider profile:", error);

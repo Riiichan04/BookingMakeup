@@ -352,7 +352,7 @@ export default function BookingPage() {
 
       setSuccessMsg("Đặt lịch thành công! Đang chuyển về trang thông tin của bạn...");
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/dev/dashboard");
       }, 2000);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: string | { message?: string } } })?.response?.data;
@@ -378,7 +378,6 @@ export default function BookingPage() {
             {service && (
               <SectionCard title="Thông tin dịch vụ">
                 <div style={{ display: "flex", gap: 16 }}>
-                  <Image src={service.imageUrl} alt={service.title} width={96} height={96} unoptimized style={{ borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
                     <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "#111827" }}>{service.title}</h3>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>

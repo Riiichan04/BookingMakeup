@@ -205,11 +205,19 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
         <div className="bg-[#FFF5F8] min-h-screen font-sans pb-20">
             <Header />
 
-            <main className="max-w-7xl mb-8 mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* === CỘT TRÁI === */}
-                <div className="lg:col-span-8 space-y-6">
-                    {/* KHỐI THÔNG TIN ARTIST */}
-                    <div className="bg-white rounded-3xl p-8 flex flex-col md:flex-row gap-8 shadow-sm relative overflow-hidden">
+            <main className="max-w-7xl mb-8 mx-auto px-4 mt-8">
+                <button 
+                  onClick={() => router.back()} 
+                  className="flex items-center gap-2 text-gray-600 hover:text-pink-600 font-medium mb-6 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Quay lại
+                </button>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* === CỘT TRÁI === */}
+                    <div className="lg:col-span-8 space-y-6">
+                        <div className="bg-white rounded-3xl p-8 flex flex-col md:flex-row gap-8 shadow-sm relative overflow-hidden">
+                        
                         {artist.ownerId && (
                             <Link href={`/provider/${artist.ownerId}`} className="absolute top-0 right-0 bg-pink-50 text-[#E4187D] text-xs font-bold px-4 py-2 rounded-bl-2xl border-b border-l border-pink-100 flex items-center gap-1.5 hover:bg-pink-100 hover:text-pink-700 transition-colors z-10 cursor-pointer shadow-sm">
                                 <Briefcase className="w-3.5 h-3.5" />
@@ -370,6 +378,7 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                             <div className="flex gap-3"><MapPin className="w-5 h-5 text-pink-400 shrink-0 mt-0.5" /><div><h4 className="text-sm font-bold text-gray-900">Hỗ trợ di chuyển</h4><p className="text-xs text-gray-500 mt-0.5">Có thể phục vụ tận nơi theo yêu cầu của khách hàng.</p></div></div>
                         </div>
                     </div>
+                </div>
                 </div>
             </main>
 

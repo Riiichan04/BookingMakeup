@@ -121,11 +121,17 @@ export default function AuthProvider({
 
     const login = useCallback((userData: AuthDto) => {
         if (!userData.jwtToken) return;
+        if (typeof window !== "undefined") {
+            sessionStorage.removeItem("is_service_owner");
+        }
         persistUser(userData);
         notifyAuthChange();
     }, []);
 
     const logout = useCallback(() => {
+        if (typeof window !== "undefined") {
+            sessionStorage.removeItem("is_service_owner");
+        }
         persistUser(null);
         notifyAuthChange();
         window.location.href = "/";
