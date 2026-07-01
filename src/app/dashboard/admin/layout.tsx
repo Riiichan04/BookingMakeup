@@ -18,7 +18,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
             if (role === "ADMIN" || role === "1") {
                 setIsVerified(true);
             } else {
-                router.push("/dev/dashboard");
+                router.push("/dashboard");
             }
         }
     }, [user, router]);

@@ -112,7 +112,7 @@ export default function Header() {
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/dev/dashboard")}>
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/dashboard")}>
                                     <User className="mr-2 h-4 w-4" /> Bảng điều khiển
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="cursor-pointer">

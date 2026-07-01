@@ -130,7 +130,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
 
                         <div className="hidden md:flex flex-col gap-4 border-l border-gray-100 pl-6 shrink-0">
                             <div className="text-center"><p className="text-xl font-bold text-gray-900">{data.artists?.length || 0}</p><p className="text-xs text-gray-500">Artist</p></div>
-                            <div className="text-center"><p className="text-xl font-bold text-gray-900">{data.averageRating} <Star className="inline w-4 h-4 text-yellow-400 fill-current -mt-1" /></p><p className="text-xs text-gray-500">{data.totalReviews} đánh giá</p></div>
+                            <div className="text-center"><p className="text-xl font-bold text-gray-900">{data.averageRating ? data.averageRating.toFixed(1) : "0.0"} <Star className="inline w-4 h-4 text-yellow-400 fill-current -mt-1" /></p><p className="text-xs text-gray-500">{data.totalReviews} đánh giá</p></div>
                         </div>
                     </div>
 
@@ -187,7 +187,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start">
                                             <h3 className="font-bold text-gray-900 text-sm">{art.displayName}</h3>
-                                            <span className="text-[#E4187D] text-xs font-bold flex items-center"><Star className="w-3 h-3 fill-current mr-1" /> {art.rating}</span>
+                                            <span className="text-[#E4187D] text-xs font-bold flex items-center"><Star className="w-3 h-3 fill-current mr-1" /> {art.rating ? art.rating.toFixed(1) : "0.0"}</span>
                                         </div>
                                         <p className="text-xs text-gray-500 line-clamp-1 mb-2">Chuyên: {art.specialty}</p>
                                         {user &&
@@ -250,7 +250,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                                     <p className="text-xs text-gray-500">{art.specialty}</p>
                                 </div>
                                 <div className="text-[#E4187D] text-xs font-bold flex items-center">
-                                    <Star className="w-3.5 h-3.5 fill-current mr-1" /> {art.rating}
+                                    <Star className="w-3.5 h-3.5 fill-current mr-1" /> {art.rating ? art.rating.toFixed(1) : "0.0"}
                                 </div>
                             </button>
                         ))}

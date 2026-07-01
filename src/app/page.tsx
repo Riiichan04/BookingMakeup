@@ -261,8 +261,8 @@ export default function HomePage() {
                                         <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
                                             <div className="flex items-center gap-1">
                                                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                <span className="text-sm font-bold text-gray-700">{artist.rating.toFixed(1)}</span>
-                                                <span className="text-xs text-gray-400">({artist.reviewsCount})</span>
+                                                <span className="text-sm font-bold text-gray-700">{artist.rating ? artist.rating.toFixed(1) : "0.0"}</span>
+                                                <span className="text-xs text-gray-400">({artist.reviewsCount || 0})</span>
                                             </div>
                                             <span className="text-[#E4187D] font-bold text-sm">
                                                 {artist.priceFrom > 0 ? `Từ ${artist.priceFrom.toLocaleString('vi-VN')}đ` : 'Liên hệ'}

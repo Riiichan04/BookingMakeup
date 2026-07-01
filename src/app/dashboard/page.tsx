@@ -26,7 +26,7 @@ export default function DashboardRootPage() {
 
             // 1. NẾU LÀ ADMIN (1) -> Chuyển vào menu Quản lý người dùng
             if (userRole === "ADMIN" || userRole === "1") {
-                router.push("/dev/dashboard/admin/revenue");
+                router.push("/dashboard/admin/revenue");
                 return;
             }
 
@@ -34,10 +34,10 @@ export default function DashboardRootPage() {
             // (Vì trên server chỉ có role admin=1 và user=0, thông tin SO được lưu ở bảng service_owners)
             const isSO = await profileService.checkIsServiceOwner();
             if (isSO) {
-                router.push("/dev/dashboard/so/bookings");
+                router.push("/dashboard/so/bookings");
                 return;
             } else {
-                router.push("/dev/dashboard/customer/bookings");
+                router.push("/dashboard/customer/bookings");
                 return;
             }
         };

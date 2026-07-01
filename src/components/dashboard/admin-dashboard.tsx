@@ -281,6 +281,8 @@ export default function AdminDashboard() {
       CONFIRMED: 0,
       COMPLETED: 0,
       CANCELLED: 0,
+      REJECTED: 0,
+      PAID: 0,
     };
     const serviceMap = new Map<string, { name: string; count: number }>();
     const customerMap = new Map<string, { name: string; count: number }>();

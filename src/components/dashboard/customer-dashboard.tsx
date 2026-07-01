@@ -414,7 +414,7 @@ export default function CustomerDashboard() {
                           <CardTitle className="text-lg font-bold line-clamp-1">{svc.name}</CardTitle>
                           <div className="flex items-center text-yellow-500 font-bold text-sm shrink-0">
                             <Star className="w-4 h-4 fill-current mr-1" />
-                            {svc.rating ? svc.rating.toFixed(1) : "5.0"}
+                            {svc.rating && svc.rating > 0 ? svc.rating.toFixed(1) : "Chưa có"}
                           </div>
                         </div>
                         <CardDescription className="text-sm line-clamp-2 mt-1">{svc.description}</CardDescription>
