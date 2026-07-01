@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { MakeupService } from "@/types/service";
 import { createBooking, getBookingsByArtist } from "@/lib/api/booking";
-import Image from "next/image";
+// import Image from "next/image";
 import { getServiceDetail } from "@/services/artist-service";
 import { ServiceDetailResponse } from "@/types/artist";
 import { useAuth } from "@/contexts/auth-context";
@@ -37,14 +37,14 @@ function isoDate(y: number, m: number, d: number) {
   return `${y}-${pad(m)}-${pad(d)}`;
 }
 
-// Tạo danh sách khung giờ theo bước 30 phút từ 7:00 → 20:30
+// Tạo danh sách khung giờ theo bước 30 phút từ 6:00 → 21:30
 function generateTimeSlots(): string[] {
   const slots: string[] = [];
-  for (let h = 7; h <= 20; h++) {
+  for (let h = 6; h <= 21; h++) {
     slots.push(`${pad(h)}:00:00`);
     slots.push(`${pad(h)}:30:00`);
   }
-  return slots.filter((_, i) => i < 28);
+  return slots;
 }
 
 const TIME_SLOTS = generateTimeSlots();
@@ -71,6 +71,8 @@ function MiniCalendar({
 
   const firstDay = new Date(viewYear, viewMonth - 1, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+
+  const minBookableDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
 
   const prevMonth = () => {
     if (viewMonth === 1) { setViewMonth(12); setViewYear(y => y - 1); }
@@ -104,23 +106,26 @@ function MiniCalendar({
         {cells.map((day, i) => {
           if (!day) return <div key={i} />;
           const dateStr = isoDate(viewYear, viewMonth, day);
+          const cellDate = new Date(viewYear, viewMonth - 1, day);
+
           const isToday = dateStr === isoDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
-          const isPast = new Date(viewYear, viewMonth - 1, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
           const isSelected = dateStr === selected;
+
           const isBooked = bookedDates.has(dateStr);
+          const isDisabledDate = cellDate < minBookableDate;
 
           return (
             <button
               key={i}
-              disabled={isPast}
-              onClick={() => !isPast && onSelect(dateStr)}
+              disabled={isDisabledDate}
+              onClick={() => !isDisabledDate && onSelect(dateStr)}
               style={{
                 width: "100%", aspectRatio: "1", borderRadius: 8,
                 border: isSelected ? "2px solid #ec4899" : isToday ? "2px solid #f9a8d4" : "none",
                 background: isSelected ? "#ec4899" : isBooked ? "#fef2f2" : "transparent",
-                color: isSelected ? "#fff" : isPast ? "#d1d5db" : isBooked ? "#f87171" : "#111827",
+                color: isSelected ? "#fff" : isDisabledDate ? "#d1d5db" : isBooked ? "#f87171" : "#111827",
                 fontSize: 13, fontWeight: isSelected || isToday ? 700 : 400,
-                cursor: isPast ? "not-allowed" : "pointer",
+                cursor: isDisabledDate ? "not-allowed" : "pointer",
                 position: "relative",
               }}
             >
@@ -153,6 +158,7 @@ export default function BookingPage() {
 
   const serviceId = params.serviceId as string;
   const ownerId = searchParams.get("ownerId") ?? "";
+  const artistId = searchParams.get("artistId") ?? "";
 
   const { user, updateUser } = useAuth();
 
@@ -188,7 +194,7 @@ export default function BookingPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
-  const [bookedSlots, setBookedSlots] = useState<Set<string>>(new Set());
+  // const [bookedSlots, setBookedSlots] = useState<Set<string>>(new Set());
 
   // Promotion States
   const [promoCode, setPromoCode] = useState("");
@@ -204,24 +210,90 @@ export default function BookingPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Fetch lịch đặt
+  // useEffect(() => {
+  //   if (!ownerId) return;
+  //   getBookingsByArtist(ownerId)
+  //     .then(bookings => {
+  //       const dates = new Set<string>();
+  //       const slots = new Set<string>();
+  //       bookings
+  //         .filter(b => b.status === "CONFIRMED" || b.status === "PENDING")
+  //         .forEach(b => {
+  //           dates.add(b.bookingDate);
+  //           slots.add(`${b.bookingDate}_${b.startTime}`);
+  //         });
+  //       setBookedDates(dates);
+  //       setBookedSlots(slots);
+  //     })
+  //     .catch(() => { })
+  //     .finally(() => setLoadingSchedule(false));
+  // }, [ownerId]);
+
+  const timeToMins = (timeStr: string) => {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const CLOSING_TIME_MINS = 22 * 60; //Default, closing time is 22h00
+
+  // State lưu lịch bận
+  const [busyIntervals, setBusyIntervals] = useState<Record<string, { start: number, end: number }[]>>({});
+
   useEffect(() => {
-    if (!ownerId) return;
-    getBookingsByArtist(ownerId)
+    if (!artistId) return; // Sửa lỗi cũ: Đổi từ ownerId sang artistId
+
+    getBookingsByArtist(artistId)
       .then(bookings => {
-        const dates = new Set<string>();
-        const slots = new Set<string>();
-        bookings
-          .filter(b => b.status === "CONFIRMED" || b.status === "PENDING")
-          .forEach(b => {
-            dates.add(b.bookingDate);
-            slots.add(`${b.bookingDate}_${b.startTime}`);
-          });
-        setBookedDates(dates);
-        setBookedSlots(slots);
+        const intervals: Record<string, { start: number, end: number }[]> = {};
+
+        bookings.forEach(b => {
+          // Block các đơn đang giữ chỗ hoặc đã xác nhận/đã thanh toán
+          if (['PENDING', 'CONFIRMED', 'PAID', 'APPROVED'].includes(b.status)) {
+            if (!intervals[b.bookingDate]) intervals[b.bookingDate] = [];
+
+            // Lưu lại khoảng thời gian bị chiếm dụng (Tính bằng phút từ 00:00)
+            intervals[b.bookingDate].push({
+              start: timeToMins(b.startTime),
+              end: timeToMins(b.endTime)
+            });
+          }
+        });
+
+        setBusyIntervals(intervals);
+        // Map ra bookedDates để đổ màu đỏ lên Calendar Mini
+        setBookedDates(new Set(Object.keys(intervals)));
       })
       .catch(() => { })
       .finally(() => setLoadingSchedule(false));
-  }, [ownerId]);
+  }, [artistId]);
+
+  const isSlotBooked = useCallback((slotTimeStr: string) => {
+    if (!selectedDate || !service?.duration) return false;
+
+    // 1. Tính toán thời gian của dịch vụ khách đang định đặt
+    const requestStart = timeToMins(slotTimeStr);
+    const requestEnd = requestStart + service.duration;
+
+    // CHẶN 1: Chặn lịch làm không kịp trước giờ tiệm đóng cửa
+    // Ví dụ: Đặt 20:00, làm 90 phút -> 21:30 xong. Lớn hơn 21:00 -> Khóa!
+    if (requestEnd > CLOSING_TIME_MINS) {
+      return true;
+    }
+
+    const intervalsToday = busyIntervals[selectedDate] || [];
+    if (intervalsToday.length === 0) return false;
+
+    // CHẶN 2: Chặn lẹm vào lịch của khách khác (Đúng yêu cầu của bạn)
+    return intervalsToday.some(busy => {
+      /*
+        Giải thích công thức chặn Overlap:
+        - requestStart < busy.end : Giờ khách định BẮT ĐẦU phải nằm trước lúc người kia LÀM XONG.
+        - requestEnd > busy.start : Giờ khách định LÀM XONG phải trễ hơn lúc người kia BẮT ĐẦU.
+        => Chỉ cần thỏa mãn cả 2, tức là 2 lịch chắc chắn đang dẫm chân lên nhau.
+      */
+      return (requestStart < busy.end && requestEnd > busy.start);
+    });
+  }, [selectedDate, busyIntervals, service?.duration, CLOSING_TIME_MINS]);
 
   // Fetch Promotions (Sàn + Studio) Cùng lúc
   useEffect(() => {
@@ -244,11 +316,11 @@ export default function BookingPage() {
     fetchAllPromotions();
   }, [ownerId]);
 
-  // Kiểm tra slot đã có người đặt chưa
-  const isSlotBooked = useCallback((time: string) => {
-    if (!selectedDate) return false;
-    return bookedSlots.has(`${selectedDate}_${time}`);
-  }, [selectedDate, bookedSlots]);
+  // // Kiểm tra slot đã có người đặt chưa
+  // const isSlotBooked = useCallback((time: string) => {
+  //   if (!selectedDate) return false;
+  //   return bookedSlots.has(`${selectedDate}_${time}`);
+  // }, [selectedDate, bookedSlots]);
 
   const isSlotPassed = useCallback((time: string) => {
     if (!selectedDate) return false;
@@ -335,6 +407,7 @@ export default function BookingPage() {
       await createBooking({
         serviceId,
         ownerId: ownerId,
+        artistId: artistId,
         bookingDate: selectedDate,
         startTime: selectedTime,
         promoCode: discountAmount > 0 ? promoCode.trim().toUpperCase() : undefined,
