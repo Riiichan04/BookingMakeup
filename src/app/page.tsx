@@ -433,18 +433,16 @@ export default function HomePage() {
                         const IconComponent = categoryIconMap[cat.iconUrl] || Sparkles;
                         return (
                             <motion.div key={cat.id} variants={fadeInUp}>
-                                <Link href={`/artists?specialization=${cat.slug}`}>
-                                    <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center hover:shadow-lg hover:border-pink-100 transition-all cursor-pointer group flex flex-col items-center justify-center h-full">
-                                        <div className="mb-4 text-gray-700 group-hover:text-[#E4187D] transition-colors duration-300">
-                                            <IconComponent
-                                                className="w-10 h-10 group-hover:scale-110 transition-transform duration-300"
-                                                strokeWidth={1.5}
-                                            />
-                                        </div>
-                                        <h3 className="font-bold text-gray-900 mb-2 group-hover:text-[#E4187D] transition-colors">{cat.name}</h3>
-                                        <p className="text-xs text-gray-500">{cat.description}</p>
+                                <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center hover:shadow-lg hover:border-pink-100 transition-all cursor-pointer group flex flex-col items-center justify-center h-full">
+                                    <div className="mb-4 text-gray-700 group-hover:text-[#E4187D] transition-colors duration-300">
+                                        <IconComponent
+                                            className="w-10 h-10 group-hover:scale-110 transition-transform duration-300"
+                                            strokeWidth={1.5}
+                                        />
                                     </div>
-                                </Link>
+                                    <h3 className="font-bold text-gray-900 mb-2 group-hover:text-[#E4187D] transition-colors">{cat.name}</h3>
+                                    <p className="text-xs text-gray-500">{cat.description}</p>
+                                </div>
                             </motion.div>
                         );
                     })}
