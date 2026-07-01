@@ -35,29 +35,22 @@ function ServiceCard({ service }: { service: MakeupService }) {
       display: "flex",
       flexDirection: "column",
       transition: "box-shadow 0.2s",
+      position: "relative",
     }}>
-      {/* Image */}
-      <div style={{ position: "relative", height: 200, overflow: "hidden", flexShrink: 0 }}>
-        <img
-          src={service.imageUrl}
-          alt={service.title}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-        />
-
-        {/* Heart */}
-        <button
-          onClick={() => setLiked(!liked)}
-          style={{
-            position: "absolute", top: 10, right: 10,
-            width: 32, height: 32, borderRadius: "50%",
-            background: "#fff", border: "none", cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
-          }}
-        >
-          <Heart size={15} style={{ color: liked ? "#ec4899" : "#9ca3af", fill: liked ? "#ec4899" : "none" }} />
-        </button>
-      </div>
+      {/* Heart */}
+      <button
+        onClick={() => setLiked(!liked)}
+        style={{
+          position: "absolute", top: 12, right: 12,
+          width: 32, height: 32, borderRadius: "50%",
+          background: "#fff", border: "1px solid #f0f0f0", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+          zIndex: 10,
+        }}
+      >
+        <Heart size={15} style={{ color: liked ? "#ec4899" : "#9ca3af", fill: liked ? "#ec4899" : "none" }} />
+      </button>
 
       {/* Body */}
       <div style={{ padding: "14px 16px 16px", display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>

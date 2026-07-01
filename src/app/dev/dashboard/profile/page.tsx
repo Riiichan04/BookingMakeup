@@ -2,12 +2,14 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { profileService } from "@/services/profile-service";
 import { toast } from "sonner";
-import { Loader2, User, Settings, Image as ImageIcon, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Loader2, User, Settings, Image as ImageIcon, ShieldCheck, ShieldAlert, Store } from "lucide-react";
 
 export default function ProfilePage({ mode }: { mode?: "customer" | "so" | "admin" }) {
     const { user } = useAuth();
+    const router = useRouter();
     
     // State Thông tin cơ bản (UserDto)
     const [displayName, setDisplayName] = useState("");
@@ -209,6 +211,34 @@ export default function ProfilePage({ mode }: { mode?: "customer" | "so" | "admi
                                 <input type="text" value={identityBack} onChange={(e) => setIdentityBack(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" />
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* NÚT ĐĂNG KÝ SERVICE OWNER */}
+                {(!soStatus || soStatus === "REJECTED") && (
+                    <div className="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-100 rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                        <div className="flex items-start gap-4">
+                            <div className="w-11 h-11 rounded-2xl bg-[#ec4899]/10 flex items-center justify-center shrink-0">
+                                <Store className="w-5 h-5 text-[#ec4899]" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-gray-900 text-sm">
+                                    {soStatus === "REJECTED" ? "Đăng ký lại Service Owner" : "Trở thành Service Owner"}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                    {soStatus === "REJECTED"
+                                        ? "Hồ sơ trước của bạn đã bị từ chối. Hãy cập nhật thông tin và gửi lại."
+                                        : "Đăng ký để mở tiệm, đăng gói dịch vụ và nhận đặt lịch từ khách hàng."}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => router.push("/register/service-owner")}
+                            className="shrink-0 px-6 py-2.5 bg-[#ec4899] hover:bg-pink-600 text-white font-bold rounded-full text-sm transition-all shadow-md shadow-pink-200 flex items-center gap-2 cursor-pointer"
+                        >
+                            <Store className="w-4 h-4" />
+                            {soStatus === "REJECTED" ? "Đăng ký lại" : "Đăng ký ngay"}
+                        </button>
                     </div>
                 )}
 

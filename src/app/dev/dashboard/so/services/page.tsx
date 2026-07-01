@@ -54,12 +54,12 @@ export default function SOServicesPage() {
 
     const handleOpenEdit = (svc: ServiceDto) => {
         setEditingService(svc);
-        setName(svc.name);
-        setDescription(svc.description);
-        setPrice(svc.price);
-        setCategory(svc.category);
-        setDuration(svc.duration);
-        setIsActive(svc.isActive);
+        setName(svc.name || "");
+        setDescription(svc.description || "");
+        setPrice(svc.price || 0);
+        setCategory(svc.category || "");
+        setDuration(svc.duration || 60);
+        setIsActive(svc.isActive ?? true);
         setIsOpen(true);
     };
 
