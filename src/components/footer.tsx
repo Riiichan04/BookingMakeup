@@ -120,7 +120,7 @@ export default function Footer() {
             </div>
 
             {/* Bottom Copyright Bar */}
-            <div className="bg-gray-50 border-t border-gray-100 py-4 px-8">
+            <div className="bg-gray-50 border-t border-gray-100 py-4 px-8 flex justify-center items-center">
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-gray-400 font-medium">
                     <p>© {currentYear} BookingMakeup. Toàn bộ quyền được bảo lưu.</p>
                 </div>
