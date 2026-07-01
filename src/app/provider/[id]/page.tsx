@@ -231,12 +231,12 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold">Chọn chuyên viên (Artist)</DialogTitle>
                     </DialogHeader>
-                    <div className="grid grid-cols-1 gap-3 max-h-[60vh] overflow-y-auto pr-2 mt-2">
+                    <div className="grid grid-cols-1 gap-3 max-h-[60vh] overflow-y-auto pr-2 mt-2 ">
                         {data.artists?.map(art => (
                             <button
                                 key={art.id}
                                 onClick={() => router.push(`/booking/${bookingServiceId}?ownerId=${data.ownerId}&artistId=${art.id}`)}
-                                className="flex items-center gap-4 p-3 border border-pink-100 rounded-2xl hover:bg-pink-50 transition-colors text-left"
+                                className=" cursor-pointer flex items-center gap-4 p-3 border border-pink-100 rounded-2xl hover:bg-pink-50 transition-colors text-left"
                             >
                                 <Image
                                     src={art.avatarUrl || defaultAvatar}

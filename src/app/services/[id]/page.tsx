@@ -6,10 +6,14 @@ import { Clock, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { getServiceDetail } from "@/services/artist-service";
+import { getServiceDetail, getProviderProfile } from "@/services/artist-service";
 import { useRouter } from "next/navigation";
-import { ServiceDetailResponse } from "@/types/artist";
+import { FeaturedArtistDto, ServiceDetailResponse } from "@/types/artist";
 import { SERVICE_DEPOSITE_AMOUNT } from "@/common/constant/service-deposite";
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Star } from "lucide-react";
+import { defaultAvatar } from "@/common/constant/default-avatar";
 
 export default function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -17,6 +21,25 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
 
     const [svc, setSvc] = useState<ServiceDetailResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const [isArtistModalOpen, setIsArtistModalOpen] = useState(false);
+    const [artists, setArtists] = useState<FeaturedArtistDto[]>([]);
+    const [isLoadingArtists, setIsLoadingArtists] = useState(false);
+
+    const handleOpenBooking = async () => {
+        setIsArtistModalOpen(true);
+        if (artists.length === 0 && svc?.ownerId) {
+            setIsLoadingArtists(true);
+            try {
+                const profile = await getProviderProfile(svc.ownerId);
+                setArtists(profile?.artists || []);
+            } catch (error) {
+                console.error("Lỗi khi tải danh sách Artist:", error);
+            } finally {
+                setIsLoadingArtists(false);
+            }
+        }
+    };
 
     useEffect(() => {
         getServiceDetail(resolvedParams.id)
@@ -123,8 +146,8 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                             <p className="text-xs font-bold text-pink-200 uppercase tracking-wider mb-1">Được cung cấp bởi</p>
                             <h3 className="text-2xl font-bold mb-6">{svc.ownerName}</h3>
                             <Button
-                                className="w-full bg-white text-[#E4187D] hover:bg-gray-50 hover:text-[#E4187D] rounded-full font-bold py-6 text-base transition-colors"
-                                onClick={() => router.push(`/booking/${svc.serviceId}?ownerId=${svc.ownerId}`)}
+                                className="cursor-pointer w-full bg-white text-[#E4187D] hover:bg-gray-50 hover:text-[#E4187D] rounded-full font-bold py-6 text-base transition-colors"
+                                onClick={handleOpenBooking}
                             >
                                 ĐẶT LỊCH NGAY
                             </Button>
@@ -178,6 +201,50 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                 )}
             </main>
+
+            {/* Model choose artist */}
+            <Dialog open={isArtistModalOpen} onOpenChange={setIsArtistModalOpen}>
+                <DialogContent className="sm:max-w-md rounded-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold">Chọn chuyên viên (Artist)</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 gap-3 max-h-[60vh] overflow-y-auto pr-2 mt-2">
+                        {isLoadingArtists ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="w-8 h-8 animate-spin text-[#E4187D]" />
+                            </div>
+                        ) : artists.length > 0 ? (
+                            artists.map(art => (
+                                <button
+                                    key={art.id}
+                                    onClick={() => router.push(`/booking/${svc.serviceId}?ownerId=${svc.ownerId}&artistId=${art.id}`)}
+                                    className="cursor-pointer flex items-center gap-4 p-3 border border-pink-100 rounded-2xl hover:bg-pink-50 transition-colors text-left"
+                                >
+                                    <Image
+                                        src={art.avatarUrl || defaultAvatar}
+                                        alt={art.displayName}
+                                        width={48} height={48}
+                                        className="rounded-full object-cover w-12 h-12 border border-gray-100"
+                                        unoptimized
+                                    />
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-gray-900">{art.displayName}</h4>
+                                        <p className="text-xs text-gray-500">{art.specialty || "Chuyên viên Makeup"}</p>
+                                    </div>
+                                    <div className="text-[#E4187D] text-xs font-bold flex items-center">
+                                        <Star className="w-3.5 h-3.5 fill-current mr-1" /> {art.rating || "0.0"}
+                                    </div>
+                                </button>
+                            ))
+                        ) : (
+                            <div className="text-center py-6">
+                                <p className="text-sm text-gray-500">Chủ tiệm này hiện chưa có chuyên viên nào.</p>
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             <Footer />
         </div>
     );
