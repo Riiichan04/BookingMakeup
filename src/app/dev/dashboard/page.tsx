@@ -26,7 +26,7 @@ export default function DashboardRootPage() {
 
             // 1. NẾU LÀ ADMIN (1) -> Chuyển vào menu Quản lý người dùng
             if (userRole === "ADMIN" || userRole === "1") {
-                router.push("/dev/dashboard/admin/users");
+                router.push("/dev/dashboard/admin/revenue");
                 return;
             }
 

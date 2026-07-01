@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useState, useEffect } from "react";
 import { profileService } from "@/services/profile-service";
 import { toast } from "sonner";
-import { Loader2, User, Settings, Image as ImageIcon, ShieldCheck } from "lucide-react";
+import { Loader2, User, Settings, Image as ImageIcon, ShieldCheck, ShieldAlert } from "lucide-react";
 
 export default function ProfilePage({ mode }: { mode?: "customer" | "so" | "admin" }) {
     const { user } = useAuth();
@@ -21,7 +21,7 @@ export default function ProfilePage({ mode }: { mode?: "customer" | "so" | "admi
     const [experienceYears, setExperienceYears] = useState(0);
     const [identityFront, setIdentityFront] = useState("");
     const [identityBack, setIdentityBack] = useState("");
-    const [soStatus, setSoStatus] = useState("pending");
+    const [soStatus, setSoStatus] = useState<string | null>(null);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -38,24 +38,19 @@ export default function ProfilePage({ mode }: { mode?: "customer" | "so" | "admi
                 setAddress(fullProfile.address || "");
                 setGender(fullProfile.gender?.toString() || "0");
 
-                // Check xem có nên gọi API SO không để tránh lỗi 400 Bad Request trên console F12 của User thường
-                const shouldFetchSO = mode === "so" || (!mode && typeof window !== "undefined" && window.location.pathname.includes("/so/"));
-
-                if (shouldFetchSO) {
-                    // 2. Thử tải thông tin cửa hàng (Nếu có trả về -> Người này là SO)
-                    try {
-                        const soProfile = await profileService.getServiceOwnerProfile();
-                        setIsSO(true);
-                        setBio(soProfile.bio || "");
-                        setExperienceYears(soProfile.experienceYears || 0);
-                        setIdentityFront(soProfile.identityFront || "");
-                        setIdentityBack(soProfile.identityBack || "");
-                        setSoStatus(soProfile.verificationStatus);
-                    } catch (e) {
-                        setIsSO(false); 
-                    }
-                } else {
+                // Luôn thử tải thông tin Service Owner (nếu có ứng tuyển hoặc là SO)
+                try {
+                    const soProfile = await profileService.getServiceOwnerProfile();
+                    const statusUpper = soProfile.verificationStatus ? soProfile.verificationStatus.toUpperCase() : null;
+                    setIsSO(statusUpper === "APPROVED");
+                    setBio(soProfile.bio || "");
+                    setExperienceYears(soProfile.experienceYears || 0);
+                    setIdentityFront(soProfile.identityFront || "");
+                    setIdentityBack(soProfile.identityBack || "");
+                    setSoStatus(statusUpper);
+                } catch (e) {
                     setIsSO(false);
+                    setSoStatus(null);
                 }
             } catch (error) {
                 toast.error("Không thể tải thông tin hồ sơ.");
@@ -103,6 +98,29 @@ export default function ProfilePage({ mode }: { mode?: "customer" | "so" | "admi
                 <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Hồ Sơ Cá Nhân</h2>
                 <p className="text-gray-500 text-sm">Quản lý thông tin tài khoản của bạn trên hệ thống.</p>
             </div>
+
+            {/* Banners for SO Application Status */}
+            {soStatus && soStatus !== "APPROVED" && (
+                <div className={`mb-6 p-5 rounded-3xl border flex items-start gap-3 text-sm shadow-xs ${
+                    soStatus === "PENDING"
+                        ? "bg-yellow-50 border-yellow-100 text-yellow-800"
+                        : "bg-red-50 border-red-100 text-red-800"
+                }`}>
+                    <ShieldAlert className={`w-5 h-5 shrink-0 mt-0.5 ${soStatus === "PENDING" ? "text-yellow-600" : "text-red-600"}`} />
+                    <div>
+                        <p className="font-extrabold">
+                            {soStatus === "PENDING"
+                                ? "Hồ sơ đăng ký Service Owner của bạn đang chờ phê duyệt"
+                                : "Hồ sơ đăng ký Service Owner của bạn đã bị từ chối"}
+                        </p>
+                        <p className="text-xs mt-1 text-gray-600 leading-relaxed">
+                            {soStatus === "PENDING"
+                                ? "Ban quản trị đang xem xét thông tin đăng ký của bạn. Bạn sẽ có quyền truy cập vào các tính năng dành cho Studio/SO ngay sau khi được duyệt."
+                                : "Rất tiếc, hồ sơ của bạn chưa đạt yêu cầu hệ thống. Bạn có thể kiểm tra lại thông tin, cập nhật ảnh CCCD hoặc liên hệ Admin để được trợ giúp."}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             <div className="space-y-6">
                 {/* THÔNG TIN CƠ BẢN */}

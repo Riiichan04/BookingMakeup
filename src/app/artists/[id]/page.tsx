@@ -207,10 +207,10 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
 
             <main className="max-w-7xl mb-8 mx-auto px-4 mt-8">
                 <button 
-                  onClick={() => router.push("/dev/dashboard")} 
+                  onClick={() => router.back()} 
                   className="flex items-center gap-2 text-gray-600 hover:text-pink-600 font-medium mb-6 transition-colors cursor-pointer"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Quay lại Dashboard
+                  <ArrowLeft className="w-4 h-4" /> Quay lại
                 </button>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

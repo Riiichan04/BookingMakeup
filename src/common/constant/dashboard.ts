@@ -1,6 +1,9 @@
-import { CalendarClock, Heart, User, Users, Tag, MessageSquare, Palette, Search, Settings, ShieldCheck } from "lucide-react";
+import { CalendarClock, Heart, User, Users, Tag, MessageSquare, Palette, Search, Settings, ShieldCheck, TrendingUp, BarChart3, UserCheck } from "lucide-react";
 
 export const ADMIN_TABS = [
+    { label: "Thống kê Doanh thu", href: "/dev/dashboard/admin/revenue", icon: TrendingUp },
+    { label: "Thống kê Đơn hàng", href: "/dev/dashboard/admin/bookings-stats", icon: BarChart3 },
+    { label: "Duyệt hồ sơ SO", href: "/dev/dashboard/admin/verifications", icon: UserCheck },
     { label: "Quản lý Người dùng", href: "/dev/dashboard/admin/users", icon: Users },
     { label: "Mã Khuyến mãi", href: "/dev/dashboard/admin/promotions", icon: Tag },
     { label: "Kiểm duyệt Đánh giá", href: "/dev/dashboard/admin/reviews", icon: ShieldCheck },
