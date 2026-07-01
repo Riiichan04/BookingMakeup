@@ -87,10 +87,10 @@ export default function Footer() {
                     <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Chính sách</h4>
                     <ul className="space-y-2 text-xs text-gray-500">
                         <li>
-                            <Link href="/terms" className="hover:text-[#E4187D] transition-colors">Điều khoản dịch vụ</Link>
+                            <Link href="/terms-of-service" className="hover:text-[#E4187D] transition-colors">Điều khoản dịch vụ</Link>
                         </li>
                         <li>
-                            <Link href="/privacy" className="hover:text-[#E4187D] transition-colors">Chính sách bảo mật</Link>
+                            <Link href="/privacy-policy" className="hover:text-[#E4187D] transition-colors">Chính sách bảo mật</Link>
                         </li>
                         <li>
                             <Link href="/faq" className="hover:text-[#E4187D] transition-colors">Câu hỏi thường gặp</Link>
