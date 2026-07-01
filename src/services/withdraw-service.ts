@@ -1,5 +1,5 @@
 import apiClient from "@/common/constant/api-client";
-import { BankInfoRequest, WalletResponse, WithdrawResponse } from "@/types/wallet";
+import { BankInfoRequest, WalletResponse, WithdrawDto, WithdrawResponse } from "@/types/wallet";
 
 //For wallet
 
@@ -14,6 +14,10 @@ export const updateBankInfo = async (payload: BankInfoRequest): Promise<WalletRe
 }
 
 //For withdraw
+export const getAllWithdraws = async (): Promise<WithdrawDto[]> => {
+    const response = await apiClient.get<WithdrawDto[]>('/wallets/withdraws/all');
+    return response.data;
+}
 
 export const requestWithdraw = async (amount: number): Promise<WithdrawResponse> => {
     const response = await apiClient.post<WithdrawResponse>('/wallets/withdraws/request', { amount });
