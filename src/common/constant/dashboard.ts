@@ -1,4 +1,4 @@
-import { CalendarClock, Heart, User, Users, Tag, MessageSquare, Palette, Search, Settings, ShieldCheck, TrendingUp, BarChart3, UserCheck } from "lucide-react";
+import { CalendarClock, Heart, Users, Tag, MessageSquare, Palette, Settings, ShieldCheck, TrendingUp, BarChart3, UserCheck, Wallet } from "lucide-react";
 
 export const ADMIN_TABS = [
     { label: "Thống kê Doanh thu", href: "/dashboard/admin/revenue", icon: TrendingUp },
@@ -7,6 +7,7 @@ export const ADMIN_TABS = [
     { label: "Quản lý Người dùng", href: "/dashboard/admin/users", icon: Users },
     { label: "Mã Khuyến mãi", href: "/dashboard/admin/promotions", icon: Tag },
     { label: "Kiểm duyệt Đánh giá", href: "/dashboard/admin/reviews", icon: ShieldCheck },
+    { label: "Phê duyệt rút tiền", href: "/dashboard/admin/withdraw", icon: Wallet },
     { label: "Hồ sơ Cá nhân", href: "/dashboard/admin/profile", icon: Settings },
 ];
 
@@ -16,6 +17,7 @@ export const SO_TABS = [
     { label: "Đội ngũ Artist", href: "/artists", icon: Users },
     { label: "Đánh giá nhận được", href: "/dashboard/so/reviews", icon: MessageSquare },
     { label: "Hồ sơ Cửa hàng", href: "/dashboard/so/profile", icon: Settings },
+    { label: "Ví doanh thu", href: "/dashboard/so/wallet", icon: Wallet }
 ];
 
 export const CUSTOMER_TABS = [

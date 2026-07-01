@@ -24,3 +24,20 @@ export interface WithdrawResponse {
     note?: string;
     createdAt: string;
 }
+
+export interface WithdrawDto {
+    id: string;
+    amount: number;
+    bankId: string;
+    accountNo: string;
+    accountName: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    note?: string;
+    createdAt: string;
+    // Bổ sung thêm thông tin owner nếu Entity của bạn có trả về
+    owner?: {
+        user?: {
+            displayName?: string;
+        }
+    }
+}
