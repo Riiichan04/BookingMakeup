@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { motion, Variants } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Star, MapPin, Search, CalendarHeart, Sparkles, ArrowRight, Gem, GraduationCap, Drama } from "lucide-react";
 import Header from "@/components/header";
@@ -51,6 +52,21 @@ const reviewData: HomeReviewDto[] = [
     }
 ];
 
+const fadeInUp: Variants = {
+    hidden: { opacity: 0, y: 40 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+};
+
+const staggerContainer: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.15
+        }
+    }
+};
+
 export default function HomePage() {
     const router = useRouter();
 
@@ -86,6 +102,7 @@ export default function HomePage() {
         <div className="flex flex-col min-h-screen bg-[#F9FAFB]">
             <Header />
 
+            {/* --- HERO SECTION --- */}
             <section className="relative h-[90vh] w-full flex items-center justify-center">
                 <div
                     className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
@@ -97,15 +114,20 @@ export default function HomePage() {
                     <div className="absolute inset-0 bg-black/40"></div>
                 </div>
 
-                <div className="relative z-10 text-center px-4 max-w-4xl mx-auto space-y-6">
-                    <h1 className="text-4xl md:text-6xl font-semibold text-white leading-tight drop-shadow-lg">
+                <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={staggerContainer}
+                    className="relative z-10 text-center px-4 max-w-4xl mx-auto space-y-6"
+                >
+                    <motion.h1 variants={fadeInUp} className="text-4xl md:text-6xl font-semibold text-white leading-tight drop-shadow-lg">
                         Tỏa Sáng Theo Cách Riêng Của Bạn
-                    </h1>
-                    <p className="text-lg md:text-xl text-gray-100 drop-shadow-md max-w-2xl mx-auto font-light">
+                    </motion.h1>
+                    <motion.p variants={fadeInUp} className="text-lg md:text-xl text-gray-100 drop-shadow-md max-w-2xl mx-auto font-light">
                         Nền tảng đặt lịch chuyên viên trang điểm hàng đầu Việt Nam. Nhanh chóng, uy tín và cá nhân hóa.
-                    </p>
+                    </motion.p>
 
-                    <div className="mt-8 bg-white p-2 rounded-full flex items-center shadow-2xl max-w-2xl mx-auto">
+                    <motion.div variants={fadeInUp} className="mt-8 bg-white p-2 rounded-full flex items-center shadow-2xl max-w-2xl mx-auto">
                         <div className="flex-1 flex items-center px-4 border-r border-gray-200">
                             <Search className="w-5 h-5 text-gray-400 mr-2 shrink-0" />
                             <input
@@ -134,113 +156,152 @@ export default function HomePage() {
                         >
                             Tìm kiếm
                         </Button>
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
             </section>
 
-            <section className="py-16 px-4 md:px-8 max-w-7xl mx-auto w-full">
-                <div className="flex justify-between items-end mb-8">
+            {/* --- FEATURED PROVIDERS --- */}
+            <section className="py-16 px-4 md:px-8 max-w-7xl mx-auto w-full overflow-hidden">
+                <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-50px" }}
+                    variants={fadeInUp}
+                    className="flex justify-between items-end mb-8"
+                >
                     <div>
                         <h2 className="text-3xl font-bold text-gray-900 mb-2">Nhà cung cấp Dịch vụ trang điểm nổi bật</h2>
                         <p className="text-gray-500 text-sm">Những nhà cung cấp dịch vụ được đánh giá cao nhất</p>
                     </div>
-                    {/* <Link href="/artists" className="text-[#E4187D] font-semibold text-sm hover:underline hidden sm:block">
-                        Xem tất cả
-                    </Link> */}
-                </div>
+                </motion.div>
 
                 {isLoading ? (
                     <div className="flex justify-center py-10"><span className="text-gray-400 animate-pulse">Đang tải dữ liệu...</span></div>
-                ) : featuredArtists.length === 0 ? (
+                ) : featuredProviders.length === 0 ? (
                     <div className="text-center text-gray-500 py-10">Hiện chưa có Artist nổi bật nào.</div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: "-50px" }}
+                        variants={staggerContainer}
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                    >
                         {featuredProviders.map((provider) => (
-                            <Link href={`/provider/${provider.id}`} key={provider.id}>
-                                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group cursor-pointer h-full flex flex-col">
-                                    <div className="relative w-full h-48 rounded-xl overflow-hidden mb-4">
-                                        <Image
-                                            src={provider.avatarUrl || defaultAvatar}
-                                            alt={provider.displayName}
-                                            fill
-                                            unoptimized
-                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                        />
-                                    </div>
-                                    <h3 className="font-bold text-lg text-gray-900 truncate">{provider.displayName}</h3>
+                            <motion.div key={provider.id} variants={fadeInUp}>
+                                <Link href={`/provider/${provider.id}`}>
+                                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group cursor-pointer h-full flex flex-col">
+                                        <div className="relative w-full h-48 rounded-xl overflow-hidden mb-4">
+                                            <Image
+                                                src={provider.avatarUrl || defaultAvatar}
+                                                alt={provider.displayName}
+                                                fill
+                                                unoptimized
+                                                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                        </div>
+                                        <h3 className="font-bold text-lg text-gray-900 truncate">{provider.displayName}</h3>
 
-                                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-                                        <span className="text-[#E4187D] font-bold text-sm">
-                                            {provider.priceFrom > 0 ? `Từ ${provider.priceFrom.toLocaleString('vi-VN')}đ` : 'Liên hệ'}
-                                        </span>
+                                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+                                            <span className="text-[#E4187D] font-bold text-sm">
+                                                {provider.priceFrom > 0 ? `Từ ${provider.priceFrom.toLocaleString('vi-VN')}đ` : 'Liên hệ'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            </Link>
+                                </Link>
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 )}
             </section>
 
-            <section className="py-16 px-4 md:px-8 max-w-7xl mx-auto w-full">
-                <div className="flex justify-between items-end mb-8">
+            {/* --- FEATURED ARTISTS --- */}
+            <section className="py-16 px-4 md:px-8 max-w-7xl mx-auto w-full overflow-hidden">
+                <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-50px" }}
+                    variants={fadeInUp}
+                    className="flex justify-between items-end mb-8"
+                >
                     <div>
                         <h2 className="text-3xl font-bold text-gray-900 mb-2">Artist Nổi Bật Tuần Này</h2>
                         <p className="text-gray-500 text-sm">Những chuyên viên được khách hàng đánh giá cao nhất.</p>
                     </div>
-                    {/* <Link href="/artists" className="text-[#E4187D] font-semibold text-sm hover:underline hidden sm:block">
-                        Xem tất cả
-                    </Link> */}
-                </div>
+                </motion.div>
 
                 {isLoading ? (
                     <div className="flex justify-center py-10"><span className="text-gray-400 animate-pulse">Đang tải dữ liệu...</span></div>
                 ) : featuredArtists.length === 0 ? (
                     <div className="text-center text-gray-500 py-10">Hiện chưa có Artist nổi bật nào.</div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: "-50px" }}
+                        variants={staggerContainer}
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                    >
                         {featuredArtists.map((artist) => (
-                            <Link href={`/artists/${artist.id}`} key={artist.id}>
-                                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group cursor-pointer h-full flex flex-col">
-                                    <div className="relative w-full h-48 rounded-xl overflow-hidden mb-4">
-                                        <Image
-                                            src={artist.avatarUrl || defaultAvatar}
-                                            alt={artist.displayName}
-                                            fill
-                                            unoptimized
-                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                        />
-                                    </div>
-                                    <h3 className="font-bold text-lg text-gray-900 truncate">{artist.displayName}</h3>
-                                    <p className="text-xs text-gray-500 mb-3 truncate">{artist.specialty || "Chuyên viên trang điểm"}</p>
-
-                                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-                                        <div className="flex items-center gap-1">
-                                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                            <span className="text-sm font-bold text-gray-700">{artist.rating.toFixed(1)}</span>
-                                            <span className="text-xs text-gray-400">({artist.reviewsCount})</span>
+                            <motion.div key={artist.id} variants={fadeInUp}>
+                                <Link href={`/artists/${artist.id}`}>
+                                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group cursor-pointer h-full flex flex-col">
+                                        <div className="relative w-full h-48 rounded-xl overflow-hidden mb-4">
+                                            <Image
+                                                src={artist.avatarUrl || defaultAvatar}
+                                                alt={artist.displayName}
+                                                fill
+                                                unoptimized
+                                                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                            />
                                         </div>
-                                        <span className="text-[#E4187D] font-bold text-sm">
-                                            {artist.priceFrom > 0 ? `Từ ${artist.priceFrom.toLocaleString('vi-VN')}đ` : 'Liên hệ'}
-                                        </span>
+                                        <h3 className="font-bold text-lg text-gray-900 truncate">{artist.displayName}</h3>
+                                        <p className="text-xs text-gray-500 mb-3 truncate">{artist.specialty || "Chuyên viên trang điểm"}</p>
+
+                                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+                                            <div className="flex items-center gap-1">
+                                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                                <span className="text-sm font-bold text-gray-700">{artist.rating.toFixed(1)}</span>
+                                                <span className="text-xs text-gray-400">({artist.reviewsCount})</span>
+                                            </div>
+                                            <span className="text-[#E4187D] font-bold text-sm">
+                                                {artist.priceFrom > 0 ? `Từ ${artist.priceFrom.toLocaleString('vi-VN')}đ` : 'Liên hệ'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            </Link>
+                                </Link>
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 )}
             </section>
 
-            <section className="py-12 bg-white border-y border-gray-100">
+            {/* --- PROMOTIONS --- */}
+            <section className="py-12 bg-white border-y border-gray-100 overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 md:px-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-8">Ưu Đãi Độc Quyền</h2>
+                    <motion.h2
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeInUp}
+                        className="text-2xl font-bold text-gray-900 mb-8"
+                    >
+                        Ưu Đãi Độc Quyền
+                    </motion.h2>
                     {isLoading ? (
                         <div className="flex justify-center py-10"><span className="text-gray-400 animate-pulse">Đang tải khuyến mãi...</span></div>
                     ) : promotions.length === 0 ? (
                         <div className="text-center text-gray-500 py-10">Hiện chưa có khuyến mãi nào đang diễn ra.</div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true, margin: "-50px" }}
+                            variants={staggerContainer}
+                            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                        >
                             {promotions.map(promo => (
-                                <div key={promo.id} className="relative h-48 rounded-2xl overflow-hidden shadow-sm group cursor-pointer">
+                                <motion.div key={promo.id} variants={fadeInUp} className="relative h-48 rounded-2xl overflow-hidden shadow-sm group cursor-pointer">
                                     <Image
                                         src={promo.imageUrl || "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1187&auto=format&fit=crop"}
                                         alt={promo.title}
@@ -261,51 +322,73 @@ export default function HomePage() {
                                             </span>
                                         </div>
                                     </div>
-                                </div>
+                                </motion.div>
                             ))}
-                        </div>
+                        </motion.div>
                     )}
                 </div>
             </section>
 
-            <section className="py-20 bg-pink-50/50">
+            {/* --- 3 STEPS --- */}
+            <section className="py-20 bg-pink-50/50 overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 md:px-8 text-center">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-12">Chỉ 3 Bước Để Tỏa Sáng</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="flex flex-col items-center">
+                    <motion.h2
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeInUp}
+                        className="text-3xl font-bold text-gray-900 mb-12"
+                    >
+                        Chỉ 3 Bước Để Tỏa Sáng
+                    </motion.h2>
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: "-50px" }}
+                        variants={staggerContainer}
+                        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+                    >
+                        <motion.div variants={fadeInUp} className="flex flex-col items-center">
                             <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-[#E4187D] mb-6">
                                 <Search className="w-8 h-8" />
                             </div>
                             <h3 className="text-lg font-bold text-gray-900 mb-2">1. Tìm kiếm Artist</h3>
                             <p className="text-sm text-gray-500 max-w-xs leading-relaxed">Duyệt qua hàng trăm hồ sơ chất lượng được đánh giá minh bạch bởi cộng đồng.</p>
-                        </div>
-                        <div className="flex flex-col items-center relative">
+                        </motion.div>
+                        <motion.div variants={fadeInUp} className="flex flex-col items-center relative">
                             <div className="hidden md:block absolute top-8 left-[-50%] w-full h-0.5 bg-linear-to-r from-transparent via-[#E4187D]/20 to-transparent -z-10"></div>
                             <div className="w-16 h-16 bg-[#E4187D] rounded-2xl shadow-md shadow-pink-200 flex items-center justify-center text-white mb-6">
                                 <CalendarHeart className="w-8 h-8" />
                             </div>
                             <h3 className="text-lg font-bold text-gray-900 mb-2">2. Chat & Đặt lịch</h3>
                             <p className="text-sm text-gray-500 max-w-xs leading-relaxed">Nhắn tin trực tiếp trao đổi ý tưởng và chốt thời gian, địa điểm nhanh chóng.</p>
-                        </div>
-                        <div className="flex flex-col items-center relative">
+                        </motion.div>
+                        <motion.div variants={fadeInUp} className="flex flex-col items-center relative">
                             <div className="hidden md:block absolute top-8 left-[-50%] w-full h-0.5 bg-linear-to-r from-transparent via-[#E4187D]/20 to-transparent -z-10"></div>
                             <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-[#E4187D] mb-6">
                                 <Sparkles className="w-8 h-8" />
                             </div>
                             <h3 className="text-lg font-bold text-gray-900 mb-2">3. Tận hưởng dịch vụ</h3>
                             <p className="text-sm text-gray-500 max-w-xs leading-relaxed">Artist đến tận nơi hoặc làm tại Studio. Bạn chỉ cần thư giãn và lột xác.</p>
-                        </div>
-                    </div>
+                        </motion.div>
+                    </motion.div>
                 </div>
             </section>
 
+            {/* --- CALL TO ACTION --- */}
             <section className="bg-[#E4187D] py-20 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
                     <div className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full blur-3xl"></div>
                     <div className="absolute bottom-0 right-10 w-64 h-64 bg-white rounded-full blur-3xl"></div>
                 </div>
 
-                <div className="max-w-4xl mx-auto px-4 md:px-8 text-center relative z-10">
+                <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={fadeInUp}
+                    className="max-w-4xl mx-auto px-4 md:px-8 text-center relative z-10"
+                >
                     <h2 className="text-3xl md:text-4xl font-semibold text-white mb-6">
                         Bạn Là Chuyên Viên Trang Điểm?
                     </h2>
@@ -325,16 +408,31 @@ export default function HomePage() {
                             </Button>
                         </Link>
                     </div>
-                </div>
+                </motion.div>
             </section>
 
-            <section className="py-20 max-w-7xl mx-auto px-4 md:px-8 w-full">
-                <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">Khám Phá Dịch Vụ</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {/* --- CATEGORIES --- */}
+            <section className="py-20 max-w-7xl mx-auto px-4 md:px-8 w-full overflow-hidden">
+                <motion.h2
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={fadeInUp}
+                    className="text-3xl font-bold text-gray-900 mb-10 text-center"
+                >
+                    Khám Phá Dịch Vụ
+                </motion.h2>
+                <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-50px" }}
+                    variants={staggerContainer}
+                    className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
+                >
                     {Category.map((cat) => {
                         const IconComponent = categoryIconMap[cat.iconUrl] || Sparkles;
                         return (
-                            <Link href={`/artists?specialization=${cat.slug}`} key={cat.id}>
+                            <motion.div key={cat.id} variants={fadeInUp}>
                                 <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center hover:shadow-lg hover:border-pink-100 transition-all cursor-pointer group flex flex-col items-center justify-center h-full">
                                     <div className="mb-4 text-gray-700 group-hover:text-[#E4187D] transition-colors duration-300">
                                         <IconComponent
@@ -345,18 +443,33 @@ export default function HomePage() {
                                     <h3 className="font-bold text-gray-900 mb-2 group-hover:text-[#E4187D] transition-colors">{cat.name}</h3>
                                     <p className="text-xs text-gray-500">{cat.description}</p>
                                 </div>
-                            </Link>
+                            </motion.div>
                         );
                     })}
-                </div>
+                </motion.div>
             </section>
 
-            <section className="py-20 bg-[#F9FAFB]">
+            {/* --- REVIEWS --- */}
+            <section className="py-20 bg-[#F9FAFB] overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 md:px-8">
-                    <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Khách Hàng Nói Gì Về Chúng Tôi</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <motion.h2
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeInUp}
+                        className="text-3xl font-bold text-center text-gray-900 mb-12"
+                    >
+                        Khách Hàng Nói Gì Về Chúng Tôi
+                    </motion.h2>
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: "-50px" }}
+                        variants={staggerContainer}
+                        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+                    >
                         {reviewData.map((review) => (
-                            <div key={review.id} className="bg-white p-6 rounded-2xl relative shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                            <motion.div key={review.id} variants={fadeInUp} className="bg-white p-6 rounded-2xl relative shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                                 <div className="flex gap-1 mb-4">
                                     {[...Array(review.rating)].map((_, i) => (
                                         <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -377,9 +490,9 @@ export default function HomePage() {
                                         <p className="text-xs text-gray-400">{review.serviceName} • {review.createdAt}</p>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 

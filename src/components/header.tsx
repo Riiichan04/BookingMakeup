@@ -69,6 +69,13 @@ export default function Header() {
             </div>
 
             <div className="flex items-center gap-4 text-gray-500 shrink-0">
+                <Link
+                    className="font-semibold text-[#E4187D] hover:bg-neutral-100 p-2 px-4 rounded-lg cursor-pointer"
+                    href={"/register/service-owner"}
+                >
+                    Đăng ký dịch vụ trang điểm
+                </Link>
+
                 <NotificationBell />
 
                 {isLoading ? (
@@ -95,7 +102,7 @@ export default function Header() {
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="flex flex-col space-y-1 min-w-0">
-                                            <p className="text-sm font-medium leading-tight truncate">
+                                            <p className="text-foreground text-sm font-medium leading-tight truncate">
                                                 {user.displayName || user.username}
                                             </p>
                                             <p className="text-xs leading-tight text-muted-foreground truncate">
