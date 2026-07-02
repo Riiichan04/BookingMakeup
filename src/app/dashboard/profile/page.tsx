@@ -175,14 +175,26 @@ export default function ProfilePage({ mode }: { mode?: "customer" | "so" | "admi
                 {/* THÔNG TIN CỬA HÀNG (CHỈ HIỂN THỊ NẾU LÀ SO) */}
                 {isSO && (
                     <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                             <div className="flex items-center gap-2 text-gray-900">
                                 <Settings className="w-5 h-5 text-pink-500" />
                                 <h3 className="font-bold text-lg">Hồ Sơ Cửa Hàng / Studio</h3>
                             </div>
-                            <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${soStatus === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                <ShieldCheck className="w-3.5 h-3.5" />
-                                {soStatus === 'APPROVED' ? 'Đã duyệt' : 'Chờ duyệt'}
+                            <div className="flex items-center gap-3">
+                                {user?.id && (
+                                    <button
+                                        type="button"
+                                        onClick={() => router.push(`/provider/${user.id}`)}
+                                        className="px-4 py-2 border border-pink-200 text-[#ec4899] hover:bg-pink-50 font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1"
+                                    >
+                                        <Store className="w-3.5 h-3.5" />
+                                        Xem chi tiết dịch vụ cửa hàng
+                                    </button>
+                                )}
+                                <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${soStatus === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                    {soStatus === 'APPROVED' ? 'Đã duyệt' : 'Chờ duyệt'}
+                                </div>
                             </div>
                         </div>
 

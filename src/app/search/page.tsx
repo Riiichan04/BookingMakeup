@@ -23,7 +23,7 @@ function ServiceCard({ service }: { service: MakeupService }) {
             {/* Image */}
             <div className="relative h-50 overflow-hidden shrink-0">
                 <Image
-                    src={service.imageUrl}
+                    src={service.imageUrl || "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600"}
                     alt={service.title}
                     fill
                     unoptimized

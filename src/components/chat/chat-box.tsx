@@ -83,7 +83,7 @@ export default function ChatBox({ currentUserId, recipientId, recipientName, rec
 
                 client.publish({ destination: "/app/chat.presence" });
 
-                client.subscribe(`/user/${currentUserId}/queue/messages`, (message) => {
+                client.subscribe(`/queue/messages/${currentUserId}`, (message) => {
                     if (message.body) {
                         const data = JSON.parse(message.body);
                         if (data.sender && typeof data.sender === 'object') {

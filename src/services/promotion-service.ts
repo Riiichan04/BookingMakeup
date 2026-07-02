@@ -2,6 +2,7 @@ import apiClient from '@/common/constant/api-client';
 import { PromotionDto } from '@/types/promotion';
 
 export interface CreatePromotionRequest {
+  ownerId?: string;
   code: string;
   discountValue: number;
   minOrderValue: number;

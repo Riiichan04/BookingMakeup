@@ -10,7 +10,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getRecentNotifications,
@@ -82,7 +81,7 @@ export default function NotificationBell() {
         )}
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-80 p-0 shadow-lg rounded-xl border border-gray-100">
+      <PopoverContent align="end" className="w-80 p-0 shadow-lg rounded-xl border border-gray-100 bg-white overflow-hidden z-50">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h3 className="font-semibold text-sm text-gray-800">Thông báo</h3>
           {unreadCount > 0 && (
@@ -96,7 +95,7 @@ export default function NotificationBell() {
           )}
         </div>
 
-        <ScrollArea className="max-h-80">
+        <div className="max-h-80 overflow-y-auto">
           {loading ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
               Đang tải...
@@ -135,7 +134,7 @@ export default function NotificationBell() {
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         <div className="border-t border-gray-100 px-4 py-2.5 bg-gray-50/50 rounded-b-xl">
           <button

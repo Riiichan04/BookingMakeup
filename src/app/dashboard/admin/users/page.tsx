@@ -154,7 +154,7 @@ export default function AdminUsersPage() {
                                                     : "bg-gray-50 text-gray-400 border border-gray-200"
                                             }`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full ${u.isActive ? "bg-green-500" : "bg-gray-400"}`} />
-                                                {u.isActive ? "Hoạt động" : "Bị khóa"}
+                                                {u.isActive ? "Đã xác thực" : "Chưa xác thực"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">

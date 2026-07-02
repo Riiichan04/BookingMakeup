@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import Image from "next/image";
-import { Star, MapPin, CheckCircle2, Heart, Loader2, ArrowLeft } from "lucide-react";
+import { Star, MapPin, CheckCircle2, Heart, Loader2, ArrowLeft, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -80,7 +80,7 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                     {/* Header */}
                     <div className="bg-white rounded-3xl p-8 flex flex-col md:flex-row gap-8 shadow-sm">
                         <div className="w-32 h-32 rounded-full border-4 border-pink-100 overflow-hidden shrink-0 relative bg-gray-50 flex items-center justify-center">
-                            {data.avatarUrl ? (
+                            {data.avatarUrl && data.avatarUrl.trim() !== "" ? (
                                 <Image src={data.avatarUrl} alt={data.displayName} fill className="object-cover" unoptimized />
                             ) : (
                                 <span className="text-3xl font-bold text-[#E4187D]">{data.displayName.charAt(0)}</span>
@@ -102,8 +102,6 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
                             </div>
 
                             <div className="flex flex-wrap gap-3">
-                                {/* <Button className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8">Đặt lịch ngay</Button> */}
-                                {/* <Button variant="outline" className="border-pink-200 text-[#E4187D] hover:bg-pink-50 rounded-full px-8">Liên hệ</Button> */}
                                 <Button
                                     onClick={() => {
                                         if (!user) {
@@ -118,12 +116,9 @@ export default function ProviderProfilePage({ params }: { params: Promise<{ id: 
 
                                         router.push(`/chat?${query}`);
                                     }}
-                                    className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8"
+                                    className="bg-[#E4187D] hover:bg-[#c9126b] text-white rounded-full px-8 cursor-pointer flex items-center"
                                 >
-                                    Liên hệ
-                                </Button>
-                                <Button variant="outline" className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-full px-4">
-                                    <Heart className="w-4 h-4 mr-2" /> Theo dõi
+                                    <MessageSquare className="w-4 h-4 mr-2" /> Nhắn tin
                                 </Button>
                             </div>
                         </div>

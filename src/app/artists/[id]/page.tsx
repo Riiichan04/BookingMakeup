@@ -288,7 +288,7 @@ export default function ArtistDetailPage({ params }: { params: Promise<{ id: str
                                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2"><Calendar className="w-6 h-6 text-[#E4187D]" /> Lịch làm việc sắp tới</h2>
                                 <div className="flex items-center gap-3">
                                     <span className="text-sm font-medium text-[#E4187D] bg-pink-50 px-3 py-1 rounded-full">{schedule.length} lịch hẹn</span>
-                                    {isOwner && <Button variant="outline" size="sm" className="text-[#E4187D] border-pink-200 hover:bg-pink-50 rounded-full h-8"><Edit className="w-3.5 h-3.5 mr-1.5" /> Quản lý lịch</Button>}
+                                    {isOwner && <Button onClick={() => router.push("/dashboard/so/bookings")} variant="outline" size="sm" className="text-[#E4187D] border-pink-200 hover:bg-pink-50 rounded-full h-8"><Edit className="w-3.5 h-3.5 mr-1.5" /> Quản lý lịch</Button>}
                                 </div>
                             </div>
                             <div className="border border-gray-100 rounded-2xl overflow-hidden">

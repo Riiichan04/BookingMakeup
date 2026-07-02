@@ -11,6 +11,7 @@ export interface BookingDetailDto {
     studioReceives: number;
     status: string;
     statusLabel: string;
+    serviceCategory?: string;
 }
 
 export interface RevenueStatisticsResponse {
@@ -36,6 +37,7 @@ export interface BookingStatisticsResponse {
     cancelledPercentage: number;
     completionRate: number;
     cancellationRate: number;
+    bookings?: BookingDetailDto[];
 }
 
 export interface ServiceOwnerVerificationDto {
@@ -52,13 +54,17 @@ export interface ServiceOwnerVerificationDto {
 }
 
 export const statisticsService = {
-    getRevenueStatistics: async (): Promise<RevenueStatisticsResponse> => {
-        const response = await apiClient.get<RevenueStatisticsResponse>('/admin/statistics/revenue');
+    getRevenueStatistics: async (startDate?: string, endDate?: string): Promise<RevenueStatisticsResponse> => {
+        const response = await apiClient.get<RevenueStatisticsResponse>('/admin/statistics/revenue', {
+            params: { startDate, endDate }
+        });
         return response.data;
     },
 
-    getBookingStatistics: async (): Promise<BookingStatisticsResponse> => {
-        const response = await apiClient.get<BookingStatisticsResponse>('/admin/statistics/bookings');
+    getBookingStatistics: async (startDate?: string, endDate?: string): Promise<BookingStatisticsResponse> => {
+        const response = await apiClient.get<BookingStatisticsResponse>('/admin/statistics/bookings', {
+            params: { startDate, endDate }
+        });
         return response.data;
     },
 
