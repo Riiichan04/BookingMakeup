@@ -12,7 +12,7 @@ import Footer from "@/components/footer";
 
 import { HomeArtist, HomePromotion, HomeProvider, HomeReviewDto } from "@/types/home";
 import { defaultAvatar } from "@/common/constant/default-avatar";
-import { getHomeData } from "@/services/home-service";
+import { getFeaturedProviders, getFeaturedArtists, getHomePromotions } from "@/services/home-service";
 import { Category } from "@/common/constant/category";
 
 const categoryIconMap: Record<string, React.ElementType> = {
@@ -76,19 +76,47 @@ export default function HomePage() {
     const [featuredProviders, setFeaturedProviders] = useState<HomeProvider[]>([]);
     const [featuredArtists, setFeaturedArtists] = useState<HomeArtist[]>([]);
     const [promotions, setPromotions] = useState<HomePromotion[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingProviders, setIsLoadingProviders] = useState(true);
+    const [isLoadingArtists, setIsLoadingArtists] = useState(true);
+    const [isLoadingPromotions, setIsLoadingPromotions] = useState(true);
 
     useEffect(() => {
-        const fetchHomeData = async () => {
-            setIsLoading(true);
-            const data = await getHomeData();
-            setFeaturedProviders(data.featuredProviders);
-            setFeaturedArtists(data.featuredArtists);
-            setPromotions(data.promotions);
-            setIsLoading(false);
+        const fetchProviders = async () => {
+            try {
+                const data = await getFeaturedProviders();
+                setFeaturedProviders(data);
+            } catch (err) {
+                console.error("Lỗi khi tải nhà cung cấp:", err);
+            } finally {
+                setIsLoadingProviders(false);
+            }
         };
 
-        fetchHomeData();
+        const fetchArtists = async () => {
+            try {
+                const data = await getFeaturedArtists();
+                setFeaturedArtists(data);
+            } catch (err) {
+                console.error("Lỗi khi tải artist:", err);
+            } finally {
+                setIsLoadingArtists(false);
+            }
+        };
+
+        const fetchPromotions = async () => {
+            try {
+                const data = await getHomePromotions();
+                setPromotions(data);
+            } catch (err) {
+                console.error("Lỗi khi tải khuyến mãi:", err);
+            } finally {
+                setIsLoadingPromotions(false);
+            }
+        };
+
+        void fetchProviders();
+        void fetchArtists();
+        void fetchPromotions();
     }, []);
 
     const handleSearch = () => {
@@ -175,7 +203,7 @@ export default function HomePage() {
                     </div>
                 </motion.div>
 
-                {isLoading ? (
+                {isLoadingProviders ? (
                     <div className="flex justify-center py-10"><span className="text-gray-400 animate-pulse">Đang tải dữ liệu...</span></div>
                 ) : featuredProviders.length === 0 ? (
                     <div className="text-center text-gray-500 py-10">Hiện chưa có Artist nổi bật nào.</div>
@@ -230,7 +258,7 @@ export default function HomePage() {
                     </div>
                 </motion.div>
 
-                {isLoading ? (
+                {isLoadingArtists ? (
                     <div className="flex justify-center py-10"><span className="text-gray-400 animate-pulse">Đang tải dữ liệu...</span></div>
                 ) : featuredArtists.length === 0 ? (
                     <div className="text-center text-gray-500 py-10">Hiện chưa có Artist nổi bật nào.</div>
@@ -288,7 +316,7 @@ export default function HomePage() {
                     >
                         Ưu Đãi Độc Quyền
                     </motion.h2>
-                    {isLoading ? (
+                    {isLoadingPromotions ? (
                         <div className="flex justify-center py-10"><span className="text-gray-400 animate-pulse">Đang tải khuyến mãi...</span></div>
                     ) : promotions.length === 0 ? (
                         <div className="text-center text-gray-500 py-10">Hiện chưa có khuyến mãi nào đang diễn ra.</div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import Image from "next/image";
-import { Clock, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
+import { Clock, CheckCircle2, Loader2, ArrowLeft, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -14,13 +14,39 @@ import { SERVICE_DEPOSITE_AMOUNT } from "@/common/constant/service-deposite";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Star } from "lucide-react";
 import { defaultAvatar } from "@/common/constant/default-avatar";
+import { useAuth } from "@/contexts/auth-context";
+import { isFavourite, addFavourite, removeFavourite } from "@/lib/api/favourites";
+import { toast } from "sonner";
 
 export default function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const router = useRouter();
+    const { user } = useAuth();
 
     const [svc, setSvc] = useState<ServiceDetailResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isFav, setIsFav] = useState(false);
+
+    const handleToggleFavourite = async () => {
+        if (!user) {
+            router.push("/login");
+            return;
+        }
+        try {
+            if (isFav) {
+                await removeFavourite(resolvedParams.id);
+                setIsFav(false);
+                toast.success("Đã xóa khỏi mục ưa thích");
+            } else {
+                await addFavourite(resolvedParams.id);
+                setIsFav(true);
+                toast.success("Đã thêm vào mục ưa thích");
+            }
+        } catch (error) {
+            console.error("Lỗi khi cập nhật mục ưa thích:", error);
+            toast.error("Không thể cập nhật mục ưa thích");
+        }
+    };
 
     const [isArtistModalOpen, setIsArtistModalOpen] = useState(false);
     const [artists, setArtists] = useState<FeaturedArtistDto[]>([]);
@@ -52,7 +78,17 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
             .finally(() => {
                 setIsLoading(false);
             });
-    }, [resolvedParams.id]);
+
+        if (user) {
+            isFavourite(resolvedParams.id)
+                .then((favStatus) => {
+                    setIsFav(favStatus);
+                })
+                .catch((err) => {
+                    console.error("Lỗi khi tải trạng thái yêu thích:", err);
+                });
+        }
+    }, [resolvedParams.id, user]);
     if (isLoading) {
         return (
             <div className="bg-[#FFF5F8] min-h-screen flex flex-col font-sans pb-20">
@@ -88,7 +124,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         );
     }
 
-    const mainImage = svc.mainThumbnailUrl;
+    const mainImage = svc.mainThumbnailUrl || "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600";
 
     return (
         <div className="bg-[#FFF5F8] min-h-screen font-sans pb-20">
@@ -151,6 +187,14 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                             >
                                 ĐẶT LỊCH NGAY
                             </Button>
+                            <Button
+                                variant="outline"
+                                className="cursor-pointer w-full mt-3 bg-transparent text-white border-white hover:bg-white/10 hover:text-white rounded-full font-bold py-6 text-base transition-colors flex items-center justify-center gap-2"
+                                onClick={handleToggleFavourite}
+                            >
+                                <Heart className={`w-5 h-5 ${isFav ? "fill-current text-white" : "text-white"}`} />
+                                {isFav ? "ĐÃ THÊM VÀO YÊU THÍCH" : "THÊM VÀO MỤC ƯA THÍCH"}
+                            </Button>
                         </div>
 
                         <div className="bg-white rounded-3xl p-8 shadow-sm">
@@ -182,7 +226,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                             {svc.relatedServices.map((rel) => (
                                 <div key={rel.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                                     <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4">
-                                        <Image src={rel.imageUrl} alt={rel.name} fill unoptimized className="object-cover" />
+                                        <Image src={rel.imageUrl || "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600"} alt={rel.name} fill unoptimized className="object-cover" />
                                     </div>
                                     <h3 className="font-bold text-gray-900 text-sm mb-2 line-clamp-2">{rel.name}</h3>
                                     <div className="flex items-center justify-between mt-auto">

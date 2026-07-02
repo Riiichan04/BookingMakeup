@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, Palette, Search, Settings, User } from "lucide-react";
+import { LogOut, Palette, Search, Settings, User, MessageSquare } from "lucide-react";
 import NotificationBell from "@/components/notifications/notification-bell";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
+import { chatService } from "@/services/chat-service";
+import { apiUrl } from "@/common/constant/api-url";
+import { profileService } from "@/services/profile-service";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -27,6 +30,35 @@ export default function Header() {
     const { user, logout, isLoading } = useAuth();
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
+    const [unreadMessages, setUnreadMessages] = useState(0);
+    const [isSO, setIsSO] = useState(false);
+
+    useEffect(() => {
+        if (!user) {
+            setIsSO(false);
+            return;
+        }
+        profileService.checkIsServiceOwner()
+            .then(setIsSO)
+            .catch(() => setIsSO(false));
+    }, [user]);
+
+    useEffect(() => {
+        if (!user?.id) return;
+        const fetchUnreadChats = async () => {
+            try {
+                const rooms = await chatService.getChatRooms(apiUrl, user.id);
+                const totalUnread = rooms.reduce((sum, r) => sum + (r.unreadCount || 0), 0);
+                setUnreadMessages(totalUnread);
+            } catch {
+                /* ignore */
+            }
+        };
+
+        void fetchUnreadChats();
+        const interval = setInterval(() => { void fetchUnreadChats(); }, 30000);
+        return () => clearInterval(interval);
+    }, [user?.id]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -69,12 +101,29 @@ export default function Header() {
             </div>
 
             <div className="flex items-center gap-4 text-gray-500 shrink-0">
-                <Link
-                    className="font-semibold text-[#E4187D] hover:bg-neutral-100 p-2 px-4 rounded-lg cursor-pointer"
-                    href={"/register/service-owner"}
-                >
-                    Đăng ký dịch vụ trang điểm
-                </Link>
+                {!isSO && (
+                    <Link
+                        className="font-semibold text-[#E4187D] hover:bg-neutral-100 p-2 px-4 rounded-lg cursor-pointer"
+                        href={"/register/service-owner"}
+                    >
+                        Đăng ký dịch vụ trang điểm
+                    </Link>
+                )}
+
+                {user && (
+                    <Link
+                        href="/chat"
+                        className="relative inline-flex items-center justify-center rounded-full h-9 w-9 hover:bg-gray-100 transition-colors cursor-pointer text-gray-600 hover:text-[#E4187D] outline-none"
+                        title="Tin nhắn"
+                    >
+                        <MessageSquare className="w-5 h-5" />
+                        {unreadMessages > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold text-white bg-[#E4187D] rounded-full leading-none">
+                                {unreadMessages > 99 ? "99+" : unreadMessages}
+                            </span>
+                        )}
+                    </Link>
+                )}
 
                 <NotificationBell />
 
