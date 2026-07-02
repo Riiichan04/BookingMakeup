@@ -1,19 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { statisticsService, BookingStatisticsResponse } from "@/services/statistics-service";
 import { toast } from "sonner";
-import { Loader2, Package, Clock, Check, CheckCircle2, XCircle, Users, BarChart3, TrendingUp, RefreshCw } from "lucide-react";
+import { Loader2, Package, Clock, Check, CheckCircle2, XCircle, Users, BarChart3, TrendingUp, RefreshCw, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const getNDaysAgo = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return d.toISOString().split("T")[0];
+};
+
+const getToday = () => {
+    return new Date().toISOString().split("T")[0];
+};
 
 export default function AdminBookingsStatsPage() {
     const [stats, setStats] = useState<BookingStatisticsResponse | null>(null);
     const [loading, setLoading] = useState(true);
+    const [startDate, setStartDate] = useState(getNDaysAgo(30));
+    const [endDate, setEndDate] = useState(getToday());
 
     const fetchStats = async () => {
         setLoading(true);
         try {
-            const data = await statisticsService.getBookingStatistics();
+            const data = await statisticsService.getBookingStatistics(startDate, endDate);
             setStats(data);
         } catch (error) {
             toast.error("Không thể tải số liệu thống kê đơn hàng.");
@@ -24,7 +36,39 @@ export default function AdminBookingsStatsPage() {
 
     useEffect(() => {
         fetchStats();
-    }, []);
+    }, [startDate, endDate]);
+
+    const dailyData = useMemo(() => {
+        if (!stats?.bookings) return [];
+        const map: Record<string, number> = {};
+        
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const dateStr = d.toISOString().split("T")[0];
+            map[dateStr] = 0;
+        }
+        
+        for (const b of stats.bookings) {
+            const dateStr = b.bookingDate;
+            if (map[dateStr] !== undefined) {
+                map[dateStr] += 1;
+            }
+        }
+        
+        return Object.entries(map)
+            .map(([date, count]) => ({
+                date,
+                label: date.split("-").slice(1).reverse().join("/"),
+                count
+            }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+    }, [stats?.bookings, startDate, endDate]);
+
+    const maxCount = useMemo(() => {
+        const vals = dailyData.map(d => d.count);
+        return vals.length > 0 ? Math.max(...vals, 5) : 5;
+    }, [dailyData]);
 
     if (loading) {
         return (
@@ -45,14 +89,35 @@ export default function AdminBookingsStatsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-extrabold text-gray-900 mb-1">Thống Kê Đơn Hàng</h2>
                     <p className="text-gray-500 text-sm">Xem tổng hợp trạng thái đơn đặt lịch và tần suất đặt của khách hàng trên toàn hệ thống.</p>
                 </div>
-                <Button variant="outline" onClick={fetchStats} className="flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4" /> Làm mới
-                </Button>
+                
+                <div className="flex flex-wrap items-center gap-3 bg-white p-3 rounded-2xl border border-gray-100 shadow-xs w-full xl:w-auto">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Từ ngày</span>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-pink-500 bg-white cursor-pointer"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Đến ngày</span>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-pink-500 bg-white cursor-pointer"
+                        />
+                    </div>
+                    <Button variant="outline" onClick={fetchStats} className="flex items-center gap-1.5 text-xs py-1.5 px-3 h-auto cursor-pointer">
+                        <RefreshCw className="w-3.5 h-3.5" /> Làm mới
+                    </Button>
+                </div>
             </div>
 
             {/* Thẻ Header */}
@@ -201,6 +266,43 @@ export default function AdminBookingsStatsPage() {
                         💡 <strong>Mẹo quản trị:</strong> Tỷ lệ hoàn thành phản ánh chất lượng phục vụ của các Studio. Khuyến khích các Studio duy trì tỷ lệ hoàn thành &gt; 80% để tăng mức độ uy tín trên hệ thống.
                     </div>
                 </div>
+            </div>
+
+            {/* Biểu đồ số lượng đơn đặt lịch theo ngày */}
+            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xs">
+                <div className="flex items-center gap-2 mb-6">
+                    <BarChart2 className="w-5 h-5 text-[#E4187D]" />
+                    <h3 className="font-extrabold text-gray-900">Biểu đồ số lượng đơn đặt lịch theo ngày</h3>
+                </div>
+                {dailyData.length === 0 ? (
+                    <div className="h-64 flex items-center justify-center text-gray-400 text-sm">
+                        Không có dữ liệu biểu đồ.
+                    </div>
+                ) : (
+                    <div className="w-full overflow-x-auto">
+                        <div className="min-w-[600px] h-64 flex items-end gap-3 pb-6 pt-10">
+                            {dailyData.map((d, idx) => {
+                                const percentage = (d.count / maxCount) * 100;
+                                return (
+                                    <div key={idx} className="flex-1 h-[82%] flex flex-col justify-end items-center group relative">
+                                        <div className="absolute bottom-full mb-2 bg-gray-900 text-white text-[10px] py-1 px-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-md z-10 font-bold">
+                                            {d.count} đơn hàng
+                                        </div>
+                                        <div
+                                            style={{ height: `${Math.max(percentage, 4)}%` }}
+                                            className={`w-3 sm:w-4 rounded-t-md transition-all duration-300 ${
+                                                d.count > 0 ? "bg-[#E4187D] hover:bg-[#c9126b] shadow-xs" : "bg-gray-100"
+                                            }`}
+                                        />
+                                        <span className="text-[10px] text-gray-400 font-semibold mt-2 select-none">
+                                            {d.label}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
